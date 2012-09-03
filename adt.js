@@ -175,10 +175,8 @@
 
     ctr.create = function (vals) {
       var args = names.map(function (n) {
-        var val = n in vals
-          ? vals[n]
-          : (throw new Error("Constructor applied to too few arguments"));
-
+        if (!(n in vals)) throw new Error("Constructor applied to too few arguments");
+        var val = vals[n];
         return n instanceof adt.__Base__
           ? val.clone()
           : val;

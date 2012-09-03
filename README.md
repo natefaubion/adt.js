@@ -47,6 +47,10 @@ var start2 = List.Cons.create({
   tail: List.Empty()
 });
 
+// Arguments to constructors are automatically curried
+var partial = List.Cons(42);
+var item = partial(List.Empty());
+
 // Make it a functor
 List.prototype.map = function (fn) {
   return this.isEmpty() ? this : List.Cons(fn(this.head()), this.tail().map(fn));

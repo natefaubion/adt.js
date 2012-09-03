@@ -1,13 +1,14 @@
+var adt = require("../adt");
+
 var List = adt.data({
   Empty  : adt.single(),
-  Cons   : adt.names("head", "tail")
+  Cons   : adt.record("head", "tail")
 });
 
-// Fold left
 List.prototype.foldl = function (fn, memo) {
   var item = this;
   while (item.isCons()) {
-    memo = fn(item.head(), memo);
+    memo = fn(memo, item.head());
     item = item.tail();
   }
   return memo;
@@ -24,15 +25,15 @@ List.fromArray = function (arr) {
 
 // Create an array from a list
 List.prototype.toArray = function () {
-  return this.foldl(function (val, arr) {
+  return this.foldl(function (arr, val) {
     arr.push(val);
     return arr;
   }, []);
 };
 
 // Custom toString method
-List.Cons.prototype.toString = function () {
-  return "Cons(" + this.head() + ", " + this.tail().toString() + ")";
+List.prototype.toString = function () {
+  return this.isEmpty() ? "Empty" : "Cons(" + this.head() + ", " + this.tail().toString() + ")";
 };
 
 // Find the length of the list
@@ -47,7 +48,23 @@ List.prototype.concat = function (list) {
   return this.isEmpty() ? list : List.Cons(this.head(), this.tail().concat(list));
 };
 
+// Flatten a level
+List.prototype.flatten = function () {
+  return this.foldl(function (memo, list) {
+    return memo.concat(list);
+  }, List.Empty());
+};
+
 // Make it a functor
 List.prototype.map = function (fn) {
   return this.isEmpty() ? this : List.Cons(fn(this.head()), this.tail().map(fn));
+};
+
+// Make it a monad
+List.unit = function (val) {
+  return List.Cons(val, List.Empty());
+};
+
+List.prototype.then = function (fn) {
+  return this.isEmpty() ? this : this.map(fn).flatten();
 };

@@ -19,7 +19,7 @@ just instanceof Maybe;
 
 // Types have boilerplate for type checking
 just.isNothing() === false;
-just.isJust() === false;
+just.isJust() === true;
 
 // Singles always return the same instance
 nothing === Maybe.Nothing();

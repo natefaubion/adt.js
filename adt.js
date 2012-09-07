@@ -156,6 +156,7 @@
     };
 
     ctr = adt.util.curry(ctr, names.length);
+    ctr.__names = names.slice();
     ctr.prototype = new adt.__Base__();
     ctr.prototype.constructor = ctr;
 
@@ -172,7 +173,7 @@
 
     ctr.prototype.slot = function (num) {
       if (num < 0 || num > names.length - 1) throw new Error("Slot index out of range");
-      return this[names[i]]();
+      return this[names[num]]();
     };
 
     ctr.prototype.set = function (vals) {

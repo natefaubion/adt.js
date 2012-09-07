@@ -1,0 +1,13 @@
+{
+  "name": "adt",
+  "version": "0.0.0",
+  "author": "Nathan Faubion <nathan@n-son.com>",
+  "description": "Algebraic data types for Javascript",
+  "main": "./adt",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/natefaubion/adt.js.git" 
+  },
+  "keywords": ["algebraic", "data", "types", "functional"],
+  "license": "MIT"
+}

@@ -69,6 +69,10 @@
     };
   };
 
+  // Internal cache of data types.
+  // Data constructors are cached here so we can perform lookups based on name.
+  var typeCache = {};
+
   // Base class from which all adt.js classes inherit.
   // All adt.js classes should have a clone method that clones the
   // object as best it can.
@@ -91,6 +95,7 @@
         var ctr = types[name];
         var proto = ctr.prototype;
         ctr.prototype = new D();
+        ctr.prototype.constructor = ctr;
 
         // Generate boilerplate type checking methods
         for (var name2 in types)
@@ -102,8 +107,12 @@
         // overwrote it making it a subclass of D.
         adt.util.extend(ctr.prototype, proto);
 
-        // Export constructor as a static property on the parent class
+        // Export constructor as a static property on the parent class.
         D[name] = ctr;
+
+        // Keep it in the cache.
+        if (name in typeCache) typeCache[name].push(ctr);
+        else typeCache[name] = [ctr];
       })(name);
     }
 
@@ -122,6 +131,7 @@
     };
 
     ctr.prototype = new adt.__Base__();
+    ctr.prototype = ctr;
 
     ctr.prototype.clone = function () {
       return inst;
@@ -147,6 +157,7 @@
 
     ctr = adt.util.curry(ctr, names.length);
     ctr.prototype = new adt.__Base__();
+    ctr.prototype.constructor = ctr;
 
     ctr.prototype.clone = function () {
       var self = this;
@@ -157,6 +168,11 @@
           : val;
       });
       return ctr.apply(null, args);
+    };
+
+    ctr.prototype.slot = function (num) {
+      if (num < 0 || num > names.length - 1) throw new Error("Slot index out of range");
+      return this[names[i]]();
     };
 
     ctr.prototype.set = function (vals) {
@@ -192,6 +208,12 @@
     });
 
     return ctr;
+  };
+
+  // Returns a list of constructors given a string type name
+  adt.lookup = function (type) {
+    var ctrs = typeCache[type];
+    return ctrs ? ctrs.slice() : undefined;
   };
 
 })(

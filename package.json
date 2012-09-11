@@ -9,5 +9,8 @@
     "url": "https://github.com/natefaubion/adt.js.git" 
   },
   "keywords": ["algebraic", "data", "types", "functional"],
+  "devDependencies": {
+    "mocha": "*"
+  },
   "license": "MIT"
 }

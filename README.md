@@ -56,3 +56,6 @@ List.prototype.map = function (fn) {
   return this.isEmpty() ? this : List.Cons(fn(this.head()), this.tail().map(fn));
 };
 ```
+
+See also matches.js: powerful pattern matching for Javascript.
+https://github.com/natefaubion/matches.js

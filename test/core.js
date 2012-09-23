@@ -34,6 +34,9 @@ suite("Core", function () {
   var baz4 = baz3.clone();
   ok(baz4.a() === 7 && baz4.b() === 8 && baz4.c() === 9 && baz4 !== baz3, "Cloning");
 
-  var cls = adt.lookup("Bar");
-  ok(cls && cls.length && cls[0] === Foo.Bar, "Lookup constructor by name")
+  var a = Foo.Baz.unapply(baz);
+  ok(a[0] === 1 && a[1] === 2 && a[2] === 3, "Unapply");
+
+  var o = Foo.Baz.unapplyObj(baz);
+  ok(o.a === 1 && o.b === 2 && o.c === 3, "Unapply object");
 });

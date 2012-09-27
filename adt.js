@@ -178,7 +178,7 @@
       // Note: Object property ordering is not guaranteed
       // therefore all creations for an object with a schema should be with an object
       var converters = [];
-      for (var k in schema) { 
+      for (var k in schema) {
         args.push(k)
         var converter = schema[k]
         converters[k] = adt.convert[converter] || converter

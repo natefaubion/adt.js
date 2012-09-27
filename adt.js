@@ -11,25 +11,23 @@
   // Export
   window.adt = module.exports = adt;
 
+  function throwError(expected, s){
+    throw new Error("expected " + expected + ", got: " + s.toString());
+  }
   adt.convert = {
-    throwError: function(expected, s){
-      throw new Error("expected " + expected + " integer, got: " + s.toString());
-    }
-    , any:         function(a){return a}
-    //int:         parseInt
-    //float:       parseFloat
-    , toString:    function(s){return s.toString()}
-    , positiveInt: function(i){return parseInt(i) || throwError("a positive integer", i)}
-    , Bool:        function(b){if(b === true || b == false) return b;
-                             else throwError("a boolean", b);
-                   }
-
+      all:         function(a){return a}
     , record:         function(record, name){
         return function(r){
           if (r instanceof record) return r;
           else return record.create(r, name);
         }
     }
+    , toString:    function(s){return s.toString()}
+    , positiveInt: function(i){return parseInt(i) || throwError("a positive integer", i)}
+    , Bool:        function(b){if(b === true || b === false) return b;
+                             else throwError("a boolean", b);
+                   }
+
     , Array:       function(convertEach){return function(arr){
       var result = [];
       for(i=0,len=arr.len;i<len;i++){ result.push(convertEach(arr[i])) }
@@ -180,7 +178,7 @@
       // Note: Object property ordering is not guaranteed
       // therefore all creations for an object with a schema should be with an object
       var converters = [];
-      for (k in schema) { 
+      for (var k in schema) { 
         args.push(k)
         var converter = schema[k]
         converters[k] = adt.convert[converter] || converter
@@ -212,7 +210,7 @@
         var arg = args[i];
         if(!this.hasOwnProperty(name)) this[name] = arg;
         // TODO: remove. for getter function access
-        this['_' + names[i]] = args[i];
+        this[names[i]] = args[i];
       }
     };
 
@@ -225,7 +223,7 @@
       var self = this;
       var args = [];
       for (var i = 0, len = names.length; i < len; i++) {
-        var val = self['_' + names[i]];
+        var val = self[names[i]];
         args.push( n instanceof adt.__Base__ ? val.clone() : val );
       };
       return ctr.apply(null, args);
@@ -243,7 +241,7 @@
         var n = names[i];
         var val = n in vals
           ? vals[n]
-          : self['_' + n];
+          : self[n];
 
         args.push( n instanceof adt.__Base__ ? val.clone() : val );
       }
@@ -256,8 +254,9 @@
       for (var i=0,len=names.length;i<len;i++) {
         var name = names[i];
         if (!(name in vals)) throw new Error("Expected key: " + name.toString());
-        var val = vals[name];
-        if (converters) val = converters[name](val);
+        var unConverted = vals[name];
+        var val = converters ? converters[name].call(null, unConverted) : unConverted;
+        //if (name == "start_time") debugger
         args.push( name instanceof adt.__Base__ ? val.clone() : val );
       }
       return ctr.apply(null, args);

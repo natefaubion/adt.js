@@ -1,5 +1,7 @@
 // adt.js : Algebraic data types and immutable structures in Javascript
 // Nathan Faubion <nathan@n-son.com>
+//
+// TODO: clones adt records, but also should clone Arrays or objects
 
 ;(function (window, module) {
 
@@ -8,6 +10,30 @@
 
   // Export
   window.adt = module.exports = adt;
+
+  function throwError(expected, s){
+    throw new Error("expected " + expected + ", got: " + s.toString());
+  }
+  adt.convert = {
+      all:         function(a){return a}
+    , record:         function(record, name){
+        return function(r){
+          if (r instanceof record) return r;
+          else return record.create(r, name);
+        }
+    }
+    , toString:    function(s){return s.toString()}
+    , positiveInt: function(i){return parseInt(i) || throwError("a positive integer", i)}
+    , Bool:        function(b){if(b === true || b === false) return b;
+                             else throwError("a boolean", b);
+                   }
+
+    , Array:       function(convertEach){return function(arr){
+      var result = [];
+      for(i=0,len=arr.len;i<len;i++){ result.push(convertEach(arr[i])) }
+      return result;
+    }}
+  };
 
   // Utility functions
   adt.util = {};
@@ -140,31 +166,66 @@
   // Create a new class that has named fields. Each value can be obtained by
   // calling the name as a method. Each value can be changed by calling `set`
   // with an object of values to update. `set` returns a clone of the object.
-  adt.record = function (/* names... */) {
-    var names = adt.util.toArray(arguments), ctr;
-
-    ctr = function () {
+  adt.record = function (schema /* names... */) {
+    var converters = null;
+    var args = [];
+    if (typeof schema === "string")
       var args = adt.util.toArray(arguments);
+    else
+      if (!arguments.length == 1)
+        throw new Error("expected strings or an object, got: " + arguments.toString());
+
+      // Note: Object property ordering is not guaranteed
+      // therefore all creations for an object with a schema should be with an object
+      var converters = [];
+      for (var k in schema) {
+        args.push(k)
+        var converter = schema[k]
+        converters[k] = adt.convert[converter] || converter
+      }
+
+    var names = adt.util.toArray(args), ctr;
+    ctr = function (maybeObj) {
+      // TODO: this will break if only one field in the record
+      // probably this is a bad idea and should just use create
+      /*
+      var args = [];
+      if (arguments.length !== names.length) {
+        if (converters){
+          for (var i=0,len=names.length;i<len;i++) {
+            name = names[i];
+            if (!maybeObj.hasOwnProperty(name))
+              throw new Error("key does not exist: " + name);
+            args.push(converters[name](maybeObj[name]));
+          }
+        } else throw new Error("Constructor applied to wrong # of arguments");
+      } else {
+      }
+      */
+      var args = adt.util.toArray(arguments);
+
       if (!(this instanceof ctr)) return adt.util.ctrApply(ctr, args);
-      if (args.length > names.length) throw new Error("Constructor applied to too many arguments");
       for (var i = 0, len = args.length; i < len; i++) {
-        this['_' + names[i]] = args[i];
+        var name = names[i];
+        var arg = args[i];
+        if(!this.hasOwnProperty(name)) this[name] = arg;
+        // TODO: remove. for getter function access
+        this[names[i]] = args[i];
       }
     };
 
     ctr = adt.util.curry(ctr, names.length);
-    ctr.names = names.slice();
+    ctr.__names = names.slice();
     ctr.prototype = new adt.__Base__();
     ctr.prototype.constructor = ctr;
 
     ctr.prototype.clone = function () {
       var self = this;
-      var args = names.map(function (n) {
-        var val = self['_' + n];
-        return n instanceof adt.__Base__
-          ? val.clone()
-          : val;
-      });
+      var args = [];
+      for (var i = 0, len = names.length; i < len; i++) {
+        var val = self[names[i]];
+        args.push( n instanceof adt.__Base__ ? val.clone() : val );
+      };
       return ctr.apply(null, args);
     };
 
@@ -175,31 +236,38 @@
 
     ctr.prototype.set = function (vals) {
       var self = this;
-      var args = names.map(function (n) {
+      var args = [];
+      for (var i = 0, len = names.length; i < len; i++) {
+        var n = names[i];
         var val = n in vals
           ? vals[n]
-          : self['_' + n];
+          : self[n];
 
-        return n instanceof adt.__Base__
-          ? val.clone()
-          : val;
-      });
+        args.push( n instanceof adt.__Base__ ? val.clone() : val );
+      }
       return ctr.apply(null, args);
     };
 
-    ctr.create = function (vals) {
-      var args = names.map(function (n) {
-        if (!(n in vals)) throw new Error("Constructor applied to too few arguments");
-        var val = vals[n];
-        return n instanceof adt.__Base__
-          ? val.clone()
-          : val;
-      });
+    ctr.create = function (vals, name) {
+      if (!vals) throw new Error("Expected " + (name || "an object") + ", but got falsy");
+      var args = [];
+      for (var i=0,len=names.length;i<len;i++) {
+        var name = names[i];
+        if (!(name in vals)) throw new Error("Expected key: " + name.toString());
+        var unConverted = vals[name];
+        var val = converters ? converters[name].call(null, unConverted) : unConverted;
+        //if (name == "start_time") debugger
+        args.push( name instanceof adt.__Base__ ? val.clone() : val );
+      }
       return ctr.apply(null, args);
     };
 
     ctr.unapply = function (inst) {
-      return names.map(function (n) { return inst[n](); });
+      var result = [];
+      for (var i=0,len=names.length;i<len;i++) {
+        result.push(inst[names[i]]()); 
+      }
+      return result;
     };
 
     ctr.unapplyObj = function (inst) {
@@ -209,11 +277,13 @@
     };
 
     // Generate boilerplate getters
+    /*
     names.forEach(function (n) {
       ctr.prototype[n] = function () {
         return this['_' + n];
       };
     });
+    */
 
     return ctr;
   };

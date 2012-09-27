@@ -24,10 +24,10 @@
                              else throwError("a boolean", b);
                    }
 
-    , record:         function(record){
+    , record:         function(record, name){
         return function(r){
           if (r instanceof record) return r;
-          else return record.create(r);
+          else return record.create(r, name);
         }
     }
     , Array:       function(convertEach){return function(arr){
@@ -250,7 +250,8 @@
       return ctr.apply(null, args);
     };
 
-    ctr.create = function (vals) {
+    ctr.create = function (vals, name) {
+      if (!vals) throw new Error("Expected " + (name || "an object") + ", but got falsy");
       var args = [];
       for (var i=0,len=names.length;i<len;i++) {
         var name = names[i];

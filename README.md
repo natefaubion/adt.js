@@ -57,5 +57,18 @@ List.prototype.map = function (fn) {
 };
 ```
 
+Records with a schema
+===
+The above records hold a value of any type. Often we would like to constrain the allowable type.
+
+``` js
+Person = adt.record({
+  id         : parseInt
+  name       : adt.convert.toString
+})
+```
+
+Pattern Matching
+===
 See also matches.js: powerful pattern matching for Javascript.
 https://github.com/natefaubion/matches.js

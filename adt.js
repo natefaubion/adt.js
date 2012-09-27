@@ -24,10 +24,10 @@
                              else throwError("a boolean", b);
                    }
 
-    , record:         function(record, explainType){
+    , record:         function(record){
         return function(r){
           if (r instanceof record) return r;
-          else throw new Error("need " + (explainType || "an adt"));
+          else return record.create(r);
         }
     }
     , Array:       function(convertEach){return function(arr){

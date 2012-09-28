@@ -1,8 +1,11 @@
 var adt = require("../adt");
 
-var List = adt.data({
-  Empty  : adt.single(),
-  Cons   : adt.record("head", "tail")
+var List = adt.data(function (list, type) {
+  type('Empty');
+  type('Cons', function (cons, field) {
+    field('head');
+    field('tail', adt.only(list));
+  });
 });
 
 List.prototype.foldl = function (fn, memo) {

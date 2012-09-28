@@ -350,7 +350,7 @@
   adt.only = function () {
     var types = adt.util.toArray(arguments);
     return function (x) {
-      for (var i = 0, len = types.len; i < len; i++) {
+      for (var i = 0, len = types.length; i < len; i++) {
         if (x instanceof types[i]) return x;
       }
       throw new TypeError('Unexpected type');

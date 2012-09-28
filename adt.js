@@ -2,7 +2,6 @@
 // Nathan Faubion <nathan@n-son.com>
 
 ;(function (window, module) {
-
   // adt namespace
   var adt = {};
 
@@ -12,8 +11,9 @@
   // Utility functions
   adt.util = {};
 
-  // Cache slice since it's used so often
+  // Cache some prototype methods for easy use.
   var slice = Array.prototype.slice;
+  var apply = Function.prototype.apply;
 
   // Return an array of the supplied argument. Used for `arguments` objects.
   adt.util.toArray = function (a) {
@@ -77,38 +77,73 @@
   // Generates a new set of Algebraic data types. This will create a lot of
   // boilerplate to help with type checking. Each type will get is<type>()
   // methods that return true or false.
-  adt.data = function (types) {
-    // Create a new parent class.
-    // This class should never be created directly. It serves as a common
-    // denominator for the supplied types.
-    var D = function () {};
-    D.prototype = new adt.__Base__();
+  adt.data = function () {
+    var targ0 = typeof arguments[0];
+    var callback, types;
 
-    for (var name in types) {
-      // Wrap in a closure so we can keep a reference to the name and
-      // constructor.
-      (function (name) {
-        var ctr = types[name];
-        var proto = ctr.prototype;
-        ctr.prototype = new D();
-        ctr.prototype.constructor = ctr;
-        ctr.className = name;
-
-        // Generate boilerplate type checking methods
-        for (var name2 in types)
-          ctr.prototype['is' + name2] = name2 === name
-            ? function () { return true; }
-            : function () { return false; };
-
-        // Extend the contructors prototype with its old prototype since we
-        // overwrote it making it a subclass of D.
-        adt.util.extend(ctr.prototype, proto);
-
-        // Export constructor as a static property on the parent class.
-        D[name] = ctr;
-      })(name);
+    // adt.data(typesObj)
+    if (targ0 === "object") {
+      types = arguments[0];
+      
+      // Call adt.data again with a desugared callback.
+      return adt.data(function (d, type) {
+        for (var name in types) type(name, types[name]);
+      });
     }
 
+    // adt.data(callback)
+    callback = arguments[0];
+    // Create a new parent class.
+    // This class should never be created using `new`. You obviously can,
+    // but it won't be of much use. You can however override the apply method
+    // to create default instances.
+    var D = function () {
+      if (!(this instanceof D) && this.apply !== apply) {
+        this.apply.apply(null, adt.util.toArray(arguments));
+      }
+    };
+
+    // Make it an instance of the adt Base class
+    D.prototype = new adt.__Base__();
+
+    // Add the temporary `type` function to the class so that the callback
+    // can add new types to the family.
+    D.type = function (name, ctr) {
+      // Create a new adt constructor if not provided with one
+      if (!ctr) ctr = adt.single();
+      else if (!(ctr.prototype instanceof adt.__Base__)) ctr = adt.record(ctr);
+
+      // Reset the prototype so its a subclass of D.
+      var proto = ctr.prototype;
+      ctr.prototype = new D();
+      ctr.prototype.constructor = ctr;
+      ctr.className = name;
+
+      // Add a typechecking function to D for this type.
+      D.prototype["is" + name] = function () {
+        return this instanceof ctr;
+      };
+
+      // Extend the contructor's prototype with its old prototype since we
+      // overwrote it making it a subclass of D.
+      adt.util.extend(ctr.prototype, proto);
+
+      // Export constructor as a static property on the parent class.
+      D[name] = ctr;
+      return ctr;
+    };
+
+    // Call the callback with the contructor as the context.
+    var types = callback.call(D, D, D.type);
+
+    // If an object was returned in the callback, assume it's a mapping of
+    // more types to add.
+    if (typeof types === 'object') {
+      for (var name in types) D.type(name, types[name]);
+    }
+
+    // Remove the `type` function to seal it.
+    delete D.type;
     return D;
   };
 
@@ -124,11 +159,10 @@
     };
 
     ctr.prototype = new adt.__Base__();
-    ctr.prototype = ctr;
+    ctr.prototype.constructor = ctr;
 
-    ctr.prototype.clone = function () {
-      return inst;
-    };
+    ctr.prototype.clone = function () { return inst; };
+    ctr.prototype.equals = function (obj) { return this === obj; };
 
     ctr.create = function () { return ctr(); };
     ctr.unapply = function () { return []; };
@@ -140,73 +174,157 @@
   // Create a new class that has named fields. Each value can be obtained by
   // calling the name as a method. Each value can be changed by calling `set`
   // with an object of values to update. `set` returns a clone of the object.
-  adt.record = function (/* names... */) {
-    var names = adt.util.toArray(arguments), ctr;
+  adt.record = function () {
+    var targ0 = typeof arguments[0];
+    var names, constraints, ctr, fields, callback;
+    
+    // adt.record(fieldNames...)
+    if (targ0 === 'string') {
+      var args = adt.util.toArray(arguments);
+      fields = {};
+      args.forEach(function (a) { fields[a] = null; });
+      return adt.record(fields);
+    }
 
+    // adt.record(fieldsObj)
+    else if (targ0 === 'object') {
+      fields = arguments[0];
+      return adt.record(function (r, field) {
+        for (var name in fields) field(name, fields[name]);
+      });
+    }
+
+    // adt.record(callback)
+    callback = arguments[0];
+    names = [];
+    constraints = [];
+
+    // A record's constructor can be called without `new` and will also throw
+    // an error if called with too many arguments. This constructor duplicates
+    // some of the util.curry function so it can initially match on the length
+    // of names (which we don't know yet, but will exist later on).
     ctr = function () {
       var args = adt.util.toArray(arguments);
-      if (!(this instanceof ctr)) return adt.util.ctrApply(ctr, args);
-      if (args.length > names.length) throw new Error("Constructor applied to too many arguments");
-      for (var i = 0, len = args.length; i < len; i++) {
-        this['_' + names[i]] = args[i];
+      var len = names.length;
+      if (args.length < len) {
+        var applied = adt.util.partial.apply(this, [ctr].concat(args));
+        return len - args.length > 0
+          ? adt.util.curry(applied, len - args.length)
+          : applied;
+      } else {
+        if (!(this instanceof ctr)) return adt.util.ctrApply(ctr, args);
+        if (args.length > names.length) throw new Error("Too many arguments");
+        for (var i = 0, len = args.length; i < len; i++) {
+          this['_' + names[i]] = constraints[names[i]](args[i]);
+        }
       }
     };
 
-    ctr = adt.util.curry(ctr, names.length);
-    ctr.names = names.slice();
+    // Inherit from Base in case someone wants to create a record outside of
+    // a call to adt.data.
     ctr.prototype = new adt.__Base__();
     ctr.prototype.constructor = ctr;
 
+    // This clone method will clone any values that are also adt types and
+    // leaves anything else alone.
     ctr.prototype.clone = function () {
       var self = this;
       var args = names.map(function (n) {
-        var val = self['_' + n];
-        return n instanceof adt.__Base__
-          ? val.clone()
-          : val;
+        var val = self[n]();
+        return n instanceof adt.__Base__ ? val.clone() : val;
       });
       return ctr.apply(null, args);
     };
 
-    ctr.prototype.slot = function (num) {
-      if (num < 0 || num > names.length - 1) throw new Error("Slot index out of range");
-      return this[names[num]]();
+    // Lookup a field's value by either name or index. Looking up by name
+    // requires that we use indexOf to verify that the field exists. Normally
+    // in js, it would just return undefined, but undefined is a valid value
+    // with these types.
+    ctr.prototype.slot = function (field) {
+      if (typeof field === "number") {
+        if (field < 0 || field > names.length - 1) {
+          throw new Error("Field index out of range");
+        }
+        field = names[field];
+      } else {
+        if (names.indexOf(field) === -1) {
+          throw new Error("Field name does not exist");
+        }
+      }
+      return this[field]();
     };
 
+    // Returns a new instance.
     ctr.prototype.set = function (vals) {
       var self = this;
       var args = names.map(function (n) {
-        var val = n in vals
-          ? vals[n]
-          : self['_' + n];
-
-        return n instanceof adt.__Base__
-          ? val.clone()
-          : val;
+        var val = n in vals ? vals[n] : self[n]();
+        return constraints[n](val);
       });
       return ctr.apply(null, args);
     };
 
+    // Performs deep equality checks on each field as long as it holds an
+    // adt type. Any other types will just be compared using ===.
+    ctr.prototype.equals = function (that) {
+      if (!(that instanceof ctr)) return false;
+      if (this !== that) {
+        var i = 0, len = names.length;
+        var name, vala, valb;
+        for (; i < len; i++) {
+          name = names[i];
+          vala = this[name]();
+          valb = that[name]();
+          if ((vala instanceof adt.__Base__ && !vala.equals(valb)) || vala !== valb) {
+            return false;
+          }
+        }
+      }
+      return true;
+    };
+
+    // Creates a new instance using key-value pairs instead of by
+    // positional arguments.
     ctr.create = function (vals) {
       var args = names.map(function (n) {
-        if (!(n in vals)) throw new Error("Constructor applied to too few arguments");
-        var val = vals[n];
-        return n instanceof adt.__Base__
-          ? val.clone()
-          : val;
+        if (!(n in vals)) throw new Error("Too few arguments");
+        return constraints[n](vals[n]);
       });
       return ctr.apply(null, args);
     };
 
+    // Returns an array representation of the fields
     ctr.unapply = function (inst) {
       return names.map(function (n) { return inst[n](); });
     };
 
+    // Returns an object representation of the field
     ctr.unapplyObj = function (inst) {
       var ret = {};
       names.forEach(function (n) { ret[n] = inst[n](); });
       return ret;
     };
+
+    // Add the temporary `field` function to the constructor so that the
+    // callback can add new fields to the type.
+    ctr.field = function (name, constraint) {
+      if (!constraint) constraint = adt.any;
+      if (typeof constraint !== 'function') {
+        throw new TypeError('Constraints must be functions')
+      }
+      names.push(name);
+      constraints[name] = constraint;
+      return ctr;
+    };
+
+    // Call the callback with the contructor as the context.
+    fields = callback.call(ctr, ctr, ctr.field);
+
+    // If an object was returned in the callback, assume it's a mapping of
+    // more fields to add.
+    if (typeof fields === 'object') {
+      for (var name in fields) ctr.field(name, fields[name]);
+    }
 
     // Generate boilerplate getters
     names.forEach(function (n) {
@@ -215,7 +333,28 @@
       };
     });
 
+    // Export names and constraints as meta attributes.
+    ctr.__names__ = names;
+    ctr.__constraints__ = constraints;
+
+    // Remove the field function
+    delete ctr.field;
     return ctr;
+  };
+
+  // A contraint function that will accept any value.
+  adt.any = function (x) { return x; };
+
+  // A constraint generator that will perform instanceof checks on the value
+  // to make sure it is of the correct type.
+  adt.only = function () {
+    var types = adt.util.toArray(arguments);
+    return function (x) {
+      for (var i = 0, len = types.len; i < len; i++) {
+        if (x instanceof types[i]) return x;
+      }
+      throw new TypeError('Unexpected type');
+    };
   };
 
 })(

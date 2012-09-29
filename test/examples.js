@@ -1,7 +1,7 @@
 var adt = require("../adt");
 var assert = require("assert");
 
-function ok (expr, name) {
+function ok (name, expr) {
   test(name, function () {
     assert.ok(expr);
   })

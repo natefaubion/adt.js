@@ -1,28 +1,34 @@
 var adt = require("../adt");
 var assert = require("assert");
 
-function ok (expr, name) {
+function ok (name, expr) {
   test(name, function () {
     assert.ok(expr);
-  })
+  });
+}
+
+function throws (name, fn, type) {
+  test(name, function () {
+    assert.throws(fn, type || undefined);
+  });
 }
 
 suite("Core", function () {
   suite("adt.single()", function () {
     var Foo = adt.single();
     var foo = Foo();
-    ok(foo instanceof adt.__Base__, "Instance of adt base class");
-    ok(foo instanceof Foo, "Instance of constructor");
-    ok(foo === Foo(), "Singles always refer to the same instance");
-    ok(foo.clone() === foo, "`clone` returns the same instance");
-    ok(foo.equals(new Foo), "`equals` matches same instance");
-    ok(!foo.equals(12), "`equals` doesn't match something else");
-    ok(Foo.create({}) === foo, "`create` returns same instance");
+    ok("Instance of adt base class", foo instanceof adt.__Base__);
+    ok("Instance of constructor", foo instanceof Foo);
+    ok("Singles always refer to the same instance", foo === Foo());
+    ok("`clone` returns the same instance", foo.clone() === foo);
+    ok("`equals` matches same instance", foo.equals(new Foo));
+    ok("`equals` doesn't match something else", !foo.equals(12));
+    ok("`create` returns same instance", Foo.create({}) === foo);
 
     var arr = Foo.unapply(foo);
     var obj = Foo.unapplyObj(foo);
-    ok(arr instanceof Array && arr.length === 0, "`unapply` returns empty array");
-    ok(obj instanceof Object && Object.keys(obj).length === 0, "`unapplyObj` returns empty object");
+    ok("`unapply` returns empty array", arr instanceof Array && arr.length === 0);
+    ok("`unapplyObj` returns empty object", obj instanceof Object && Object.keys(obj).length === 0);
   });
   
   var constraint = function (x) {
@@ -34,54 +40,59 @@ suite("Core", function () {
     var inner;
     var Foo = adt.record(function (foo, field) {
       inner = foo;
-      ok(foo === this, "Class passed to callback")
-      ok(field === this.field, "`field` passed to callback");
+      ok("Class passed to callback", foo === this);
+      ok("`field` passed to callback", field === this.field);
       field("a", adt.any);
       field("b");
       field("c", constraint);
-      return {
-        d: adt.any
-      };
+      return { d: adt.any };
     });
 
     var ns = Foo.__names__;
     var cs = Foo.__constraints__;
-    ok(inner === Foo, "Class passed to callback is the same as the one returned");
-    ok(ns.length === 4, "Class has right number of fields");
-    ok(ns[0] === 'a' && ns[1] === 'b' && ns[2] === 'c' && ns[3] === 'd', "Class has fields in right order");
-    ok(cs.a === adt.any && cs.b === adt.any && cs.c === constraint && cs.d === adt.any, "Class has correct constraints");
+    ok("Class passed to callback is the same as the one returned", inner === Foo);
+    ok("Class has right number of fields", ns.length === 4);
+    ok("Class has fields in right order", ns[0] === 'a' && ns[1] === 'b' && ns[2] === 'c' && ns[3] === 'd');
+    ok("Class has correct constraints", cs.a === adt.any && cs.b === adt.any && cs.c === constraint && cs.d === adt.any);
 
     var foo = Foo(1, 2, 3, 4);
-    ok(foo instanceof adt.__Base__, "Instance of adt base class");
-    ok(foo instanceof Foo, "Instance of constructor");
-    ok(foo.a() === 1 && foo.b() === 2 && foo.c() === 3, "Boilerplate getters");
-    ok(foo.slot(0) === 1 && foo.slot(1) === 2 && foo.slot(2) === 3, "Index based getters");
-    ok(foo.slot('a') === 1 && foo.slot('b') === 2 && foo.slot('c') === 3, "Name based getters");
+    ok("Instance of adt base class", foo instanceof adt.__Base__);
+    ok("Instance of constructor", foo instanceof Foo);
+    ok("Boilerplate getters", foo.a() === 1 && foo.b() === 2 && foo.c() === 3);
+    ok("Index based getters", foo.slot(0) === 1 && foo.slot(1) === 2 && foo.slot(2) === 3);
+    ok("Name based getters", foo.slot('a') === 1 && foo.slot('b') === 2 && foo.slot('c') === 3);
 
     var foo2 = foo.set({ a: 4, b: 5 });
-    ok(foo2.a() === 4 && foo2.b() === 5 && foo.c() === 3, "`set` changes values");
-    ok(foo2 !== foo, "`set` returns a copy");
-    ok(foo.equals(Foo(1, 2, 3, 4)), "`equals` matches on an instance with the same values");
-    ok(!foo.equals(Foo(1, 2, 4, 5)), "`equals` doesn't match on an instance on an instance with different values");
+    ok("`set` changes values", foo2.a() === 4 && foo2.b() === 5 && foo.c() === 3);
+    ok("`set` returns a copy", foo2 !== foo);
+    ok("`equals` matches on an instance with the same values", foo.equals(Foo(1, 2, 3, 4)));
+    ok("`equals` doesn't match on an instance on an instance with different values", !foo.equals(Foo(1, 2, 4, 5)));
+    ok("`equals` matches on a deep structure", Foo(foo, 1, 2, 3).equals(Foo(Foo(1, 2, 3, 4), 1, 2, 3)));
 
     var foo3 = Foo.create({ a: 1, b: 2, c: 3, d: 4 });
-    ok(foo3.a() === 1 && foo3.b() === 2 && foo3.c() === 3, "`create` with key value pairs");
+    ok("`create` with key value pairs", foo3.a() === 1 && foo3.b() === 2 && foo3.c() === 3);
 
     var arr = Foo.unapply(foo);
     var obj = Foo.unapplyObj(foo);
-    ok(arr instanceof Array && arr.length === 4 &&
-       arr[0] === 1 && arr[1] === 2 && arr[2] === 3 && arr[3] === 4, "`unapply` returns array representation");
-    ok(obj instanceof Object && Object.keys(obj).length === 4 &&
-       obj.a === 1 && obj.b === 2 && obj.c === 3 && obj.d === 4, "`unapplyObj` returns object representation");
+    ok("`unapply` returns array representation",
+       arr instanceof Array && arr.length === 4 &&
+       arr[0] === 1 && arr[1] === 2 && arr[2] === 3 && arr[3] === 4);
+
+    ok("`unapplyObj` returns object representation", 
+       obj instanceof Object && Object.keys(obj).length === 4 &&
+       obj.a === 1 && obj.b === 2 && obj.c === 3 && obj.d === 4);
 
     var partial = Foo(1, 2);
-    ok(foo.equals(partial(3, 4)), "Constructor curries");
+    ok("Constructor curries", foo.equals(partial(3, 4)));
 
     test("Constraint throws an error", function () {
       assert.throws(function () {
         new Foo(1, 2, 42, 4);
       }, TypeError);
     });
+
+    Foo.seel();
+    ok("`seel` removes `field` and `seel`", !Foo.field && !Foo.seel);
   });
 
   suite("adt.record(fieldsObj)", function () {
@@ -93,66 +104,68 @@ suite("Core", function () {
 
     var ns = Foo.__names__;
     var cs = Foo.__constraints__;
-    ok(ns.length === 3, "Class has right number of fields");
-    ok(ns[0] === 'a' && ns[1] === 'b' && ns[2] === 'c', "Class has fields in right order");
-    ok(cs.a === adt.any && cs.b === adt.any && cs.c === constraint, "Class has correct constraints");
+    ok("Class has right number of fields", ns.length === 3);
+    ok("Class has fields in right order", ns[0] === 'a' && ns[1] === 'b' && ns[2] === 'c');
+    ok("Class has correct constraints", cs.a === adt.any && cs.b === adt.any && cs.c === constraint);
   });
 
   suite("adt.record(fieldNames...)", function () {
     var Foo = adt.record("a", "b", "c");
     var ns = Foo.__names__;
     var cs = Foo.__constraints__;
-    ok(ns.length === 3, "Class has right number of fields");
-    ok(ns[0] === 'a' && ns[1] === 'b' && ns[2] === 'c', "Class has fields in right order");
-    ok(cs.a === adt.any && cs.b === adt.any && cs.c === adt.any, "Class has correct constraints");
+    ok("Class has right number of fields", ns.length === 3);
+    ok("Class has fields in right order", ns[0] === 'a' && ns[1] === 'b' && ns[2] === 'c');
+    ok("Class has correct constraints", cs.a === adt.any && cs.b === adt.any && cs.c === adt.any);
   });
 
   suite("adt.data(callback)", function () {
     var inner;
     var Foo = adt.data(function (foo, type) {
       inner = foo;
-      ok(foo === this, "Class passed to callback")
-      ok(type === this.type, "`type` passed to callback");
+      ok("Class passed to callback", foo === this);
+      ok("`type` passed to callback", type === this.type);
       type("A", adt.single());
       type("B");
       type("C", adt.record("a", "b", "c"));
-      type("D", {
-        a: adt.any,
-        b: null,
-        c: constraint
-      });
-      return {
-        E: adt.single()
-      };
+      type("D", { a: adt.any, b: null, c: constraint });
+      return { E: adt.single() };
     });
 
     var a = Foo.A(), b = Foo.B(), c = Foo.C(1, 2, 3), d = Foo.D(4, 5, 6), e = Foo.E();
-    ok(inner === Foo, "Class passed to callback is the same as the one returned");
-    ok(a instanceof adt.__Base__ &&
+    ok("Class passed to callback is the same as the one returned", inner === Foo);
+    ok("Instance of base class", 
+       a instanceof adt.__Base__ &&
        b instanceof adt.__Base__ &&
        c instanceof adt.__Base__ &&
        d instanceof adt.__Base__ &&
-       e instanceof adt.__Base__, "Instance of base class");
-    ok(a instanceof Foo &&
+       e instanceof adt.__Base__);
+    ok("Instance of type constructor", 
+       a instanceof Foo &&
        b instanceof Foo &&
        c instanceof Foo &&
        d instanceof Foo &&
-       e instanceof Foo, "Instance of type constructor");
+       e instanceof Foo);
 
-    ok(a.isA() && !a.isB() && !a.isC() && !a.isD() && !a.isE() &&
+    ok("Boilerplate type checking",
+       a.isA() && !a.isB() && !a.isC() && !a.isD() && !a.isE() &&
        !b.isA() && b.isB() && !b.isC() && !b.isD() && !b.isE() &&
        !c.isA() && !c.isB() && c.isC() && !c.isD() && !c.isE() &&
        !d.isA() && !d.isB() && !d.isC() && d.isD() && !d.isE() &&
-       !e.isA() && !e.isB() && !e.isC() && !e.isD() && e.isE(), "Boilerplate type checking");
+       !e.isA() && !e.isB() && !e.isC() && !e.isD() && e.isE());
 
-    ok(Foo.A.className === 'A' && Foo.B.className === 'B' && Foo.C.className === 'C' &&
-       Foo.D.className === 'D' && Foo.E.className === 'E', "Correct `className`");
+    ok("Correct `className`",
+       Foo.A.className === 'A' && Foo.B.className === 'B' && Foo.C.className === 'C' &&
+       Foo.D.className === 'D' && Foo.E.className === 'E');
 
     var ns = Foo.D.__names__;
     var cs = Foo.D.__constraints__;
-    ok(ns.length === 3, "Class has right number of fields");
-    ok(ns[0] === 'a' && ns[1] === 'b' && ns[2] === 'c', "Class has fields in right order");
-    ok(cs.a === adt.any && cs.b === adt.any && cs.c === constraint, "Class has correct constraints");
+    ok("Class has right number of fields", ns.length === 3);
+    ok("Class has fields in right order", ns[0] === 'a' && ns[1] === 'b' && ns[2] === 'c');
+    ok("Class has correct constraints", cs.a === adt.any && cs.b === adt.any && cs.c === constraint);
+
+    Foo.seel();
+    ok("`seel` removes `type` and `seel`", !Foo.type && !Foo.seel);
+    ok("`seel` calls `seel` on types", !Foo.A.seel && !Foo.A.field);
   });
 
   suite("adt.data(typesObj)", function () {
@@ -162,8 +175,21 @@ suite("Core", function () {
     });
 
     var a = Foo.A(), b = Foo.B();
-    ok(a instanceof adt.__Base__ && b instanceof adt.__Base__, "Instance of base class");
-    ok(a instanceof Foo && b instanceof Foo, "Instance of type constructor");
-    ok(Foo.A.className === 'A' && Foo.B.className === 'B', "Correct `className`");
+    ok("Instance of base class", a instanceof adt.__Base__ && b instanceof adt.__Base__);
+    ok("Instance of type constructor", a instanceof Foo && b instanceof Foo);
+    ok("Correct `className`", Foo.A.className === 'A' && Foo.B.className === 'B');
+  });
+
+  suite("adt.only", function () {
+    ok("Number", adt.only(Number)(42));
+    ok("String", adt.only(String)("foo"));
+    ok("Literal", adt.only("foo")("foo"));
+    throws("Number throws", function () { adt.only(Number)(null) }, TypeError);
+    throws("String throws", function () { adt.only(String)(null) }, TypeError);
+    throws("Literal throws", function () { adt.only("foo")("bar") }, TypeError);
+
+    var mult = adt.only(String, Number, null);
+    ok("Multiple types", mult("foo") && mult(42) && mult(null) === null);
+    throws("Multiple throws", function () { mult(true); }, TypeError);
   });
 });

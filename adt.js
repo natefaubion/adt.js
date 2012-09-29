@@ -13,7 +13,7 @@
 
   // Cache some prototype methods for easy use.
   var slice = Array.prototype.slice;
-  var apply = Function.prototype.apply;
+  var funcApply = Function.prototype.apply;
 
   // Return an array of the supplied argument. Used for `arguments` objects.
   adt.util.toArray = function (a) {
@@ -69,6 +69,15 @@
     };
   };
 
+  // A shared `toString` method that will work with any adt type that has a
+  // className set on the constructor.
+  adt.util.toString = function () {
+    var ctr = this.constructor;
+    var name = ctr.className || "Anonymous";
+    var vals = ctr.unapply(this);
+    return name + (vals.length ? "(" + vals.join(", ") + ")" : "");
+  };
+
   // Base class from which all adt.js classes inherit.
   // All adt.js classes should have a clone method that clones the
   // object as best it can.
@@ -79,7 +88,7 @@
   // methods that return true or false.
   adt.data = function () {
     var targ0 = typeof arguments[0];
-    var callback, types;
+    var callback, types, names;
 
     // adt.data(typesObj)
     if (targ0 === "object") {
@@ -92,23 +101,28 @@
     }
 
     // adt.data(callback)
-    callback = arguments[0];
+    callback = arguments[0] || function () {};
+    names = [];
+
     // Create a new parent class.
     // This class should never be created using `new`. You obviously can,
     // but it won't be of much use. You can however override the apply method
     // to create default instances.
     var D = function () {
-      if (!(this instanceof D) && this.apply !== apply) {
-        this.apply.apply(null, adt.util.toArray(arguments));
+      if (!(this instanceof D) && D.apply !== funcApply) {
+        return D.apply(this, arguments);
       }
     };
 
-    // Make it an instance of the adt Base class
+    // Make it an instance of the adt Base class.
     D.prototype = new adt.__Base__();
 
-    // Add the temporary `type` function to the class so that the callback
-    // can add new types to the family.
+    // Declares an adt type as part of the family.
     D.type = function (name, ctr) {
+      if (typeof name !== "string") {
+        ctr = name;
+        name = uniqueId("Anonymous");
+      }
       // Create a new adt constructor if not provided with one
       if (!ctr) ctr = adt.single();
       else if (!(ctr.prototype instanceof adt.__Base__)) ctr = adt.record(ctr);
@@ -117,6 +131,7 @@
       var proto = ctr.prototype;
       ctr.prototype = new D();
       ctr.prototype.constructor = ctr;
+      ctr.prototype.toString = adt.util.toString;
       ctr.className = name;
 
       // Add a typechecking function to D for this type.
@@ -130,10 +145,11 @@
 
       // Export constructor as a static property on the parent class.
       D[name] = ctr;
+      names.push(name);
       return ctr;
     };
 
-    // Call the callback with the contructor as the context.
+    // Call the callback with the constructor as the context.
     var types = callback.call(D, D, D.type);
 
     // If an object was returned in the callback, assume it's a mapping of
@@ -142,8 +158,22 @@
       for (var name in types) D.type(name, types[name]);
     }
 
-    // Remove the `type` function to seal it.
-    delete D.type;
+    // Keep the type function around because it allows for nice type
+    // declarations, but give the option to seel it. This will call `seel`
+    // on any sub types to.
+    D.seel = function () { 
+      var self = this;
+      names.forEach(function (name) {
+        var seel = self[name].seel;
+        seel instanceof Function && seel();
+      });
+      delete D.type;
+      delete D.seel;
+      return D;
+    };
+
+    // Export names as a meta object
+    D.__names__ = names;
     return D;
   };
 
@@ -267,17 +297,16 @@
     // Performs deep equality checks on each field as long as it holds an
     // adt type. Any other types will just be compared using ===.
     ctr.prototype.equals = function (that) {
-      if (!(that instanceof ctr)) return false;
-      if (this !== that) {
+      if (this === that) return true;
+      if (that instanceof ctr) {
         var i = 0, len = names.length;
-        var name, vala, valb;
+        var vala, valb;
         for (; i < len; i++) {
-          name = names[i];
-          vala = this[name]();
-          valb = that[name]();
-          if ((vala instanceof adt.__Base__ && !vala.equals(valb)) || vala !== valb) {
-            return false;
-          }
+          vala = this[names[i]]();
+          valb = that[names[i]]();
+          if (vala instanceof adt.__Base__) {
+            if (!vala.equals(valb)) return false;
+          } else if (vala !== valb) return false;
         }
       }
       return true;
@@ -305,8 +334,7 @@
       return ret;
     };
 
-    // Add the temporary `field` function to the constructor so that the
-    // callback can add new fields to the type.
+    // Declares a field as part of the type.
     ctr.field = function (name, constraint) {
       if (!constraint) constraint = adt.any;
       if (typeof constraint !== 'function') {
@@ -337,8 +365,14 @@
     ctr.__names__ = names;
     ctr.__constraints__ = constraints;
 
-    // Remove the field function
-    delete ctr.field;
+    // Keep the field function around because it allows for nice type
+    // declarations, but give the option to seel it.
+    ctr.seel = function () { 
+      delete ctr.field;
+      delete ctr.seel;
+      return ctr;
+    };
+
     return ctr;
   };
 
@@ -346,16 +380,35 @@
   adt.any = function (x) { return x; };
 
   // A constraint generator that will perform instanceof checks on the value
-  // to make sure it is of the correct type.
+  // to make sure it is of the correct type. If a value besides a function
+  // is passed in, it will perform equality checks on it.
+  //
+  // it has special handling for Number and String. Literals won't match an
+  // instanceof check, but will match with typeof.
   adt.only = function () {
     var types = adt.util.toArray(arguments);
     return function (x) {
-      for (var i = 0, len = types.length; i < len; i++) {
-        if (x instanceof types[i]) return x;
+      var i = 0, len = types.length, type;
+      for (; i < len; i++) {
+        type = types[i];
+        if (type instanceof Function) {
+          if (x instanceof type) return x;
+          if (type === Number && typeof x === "number") return x;
+          if (type === String && typeof x === "string") return x;
+        } else {
+          if (type instanceof adt.__Base__ && type.equals(x)) return x;
+          if (type === x) return x;
+        }
       }
       throw new TypeError('Unexpected type');
     };
   };
+
+  // Helper function to return a unique id
+  var uniqueId = (function () {
+    var id = 0;
+    return function (pre) { return pre + (id++); };
+  })();
 
 })(
   typeof window !== "undefined" ? window : {},

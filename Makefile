@@ -3,7 +3,7 @@ MOCHA   = $(shell find node_modules -name "mocha" -type f)
 
 all: adt.min.js
 
-adt.min.js:
+adt.min.js: clean
 	@$(UGLIFY) adt.js > $@
 
 clean:

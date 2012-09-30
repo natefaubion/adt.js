@@ -162,11 +162,11 @@
     // declarations, but give the option to seel it. This will call `seel`
     // on any sub types to.
     D.seel = function () { 
-      var self = this;
-      names.forEach(function (name) {
-        var seel = self[name].seel;
+      var i = 0, len = names.length, seel;
+      for (; i < len; i++) {
+        seel = this[name].seel;
         seel instanceof Function && seel();
-      });
+      }
       delete D.type;
       delete D.seel;
       return D;
@@ -211,8 +211,9 @@
     // adt.record(fieldNames...)
     if (targ0 === 'string') {
       var args = adt.util.toArray(arguments);
+      var i = 0, len = args.length;
       fields = {};
-      args.forEach(function (a) { fields[a] = null; });
+      for (; i < len; i++) fields[args[i]] = null;
       return adt.record(fields);
     }
 
@@ -258,11 +259,12 @@
     // This clone method will clone any values that are also adt types and
     // leaves anything else alone.
     ctr.prototype.clone = function () {
-      var self = this;
-      var args = names.map(function (n) {
-        var val = self[n]();
-        return n instanceof adt.__Base__ ? val.clone() : val;
-      });
+      var args = [];
+      var i = 0, len = names.length, val;
+      for (; i < len; i++) {
+        val = this[names[i]]();
+        args.push(n instanceof adt.__Base__ ? val.clone : val);
+      }
       return ctr.apply(null, args);
     };
 
@@ -286,11 +288,13 @@
 
     // Returns a new instance.
     ctr.prototype.set = function (vals) {
-      var self = this;
-      var args = names.map(function (n) {
-        var val = n in vals ? vals[n] : self[n]();
-        return constraints[n](val);
-      });
+      var args = []
+      var i = 0, len = names.length, val, n;
+      for (; i < len; i++) {
+        n = names[i];
+        val = n in vals ? vals[n] : this[n]();
+        args.push(constraints[n](val));
+      }
       return ctr.apply(null, args);
     };
 
@@ -315,23 +319,30 @@
     // Creates a new instance using key-value pairs instead of by
     // positional arguments.
     ctr.create = function (vals) {
-      var args = names.map(function (n) {
+      var args = [];
+      var i = 0, len = names.length, n;
+      for (; i < len; i++) {
+        n = names[i];
         if (!(n in vals)) throw new Error("Too few arguments");
-        return constraints[n](vals[n]);
-      });
+        args.push(constraints[n](vals[n]));
+      }
       return ctr.apply(null, args);
     };
 
     // Returns an array representation of the fields
     ctr.unapply = function (inst) {
-      return names.map(function (n) { return inst[n](); });
+      var vals = [];
+      var i = 0, len = names.length;
+      for (; i < len; i++) vals.push(inst[names[i]]());
+      return vals;
     };
 
     // Returns an object representation of the field
     ctr.unapplyObj = function (inst) {
-      var ret = {};
-      names.forEach(function (n) { ret[n] = inst[n](); });
-      return ret;
+      var vals = {};
+      var i = 0, len = names.length;
+      for (; i < len; i++) vals[names[i]] = inst[names[i]]();
+      return vals;
     };
 
     // Declares a field as part of the type.
@@ -355,11 +366,12 @@
     }
 
     // Generate boilerplate getters
-    names.forEach(function (n) {
-      ctr.prototype[n] = function () {
-        return this['_' + n];
-      };
-    });
+    var i = 0, len = names.length;
+    for (; i < len; i++) {
+      (function (n) {
+        ctr.prototype[n] = function () { return this['_' + n] };
+      })(names[i]);
+    }
 
     // Export names and constraints as meta attributes.
     ctr.__names__ = names;

@@ -225,7 +225,7 @@
     }
 
     // adt.record(callback)
-    callback = arguments[0];
+    callback = arguments[0] || function () {};
     names = [];
     constraints = [];
 
@@ -383,8 +383,8 @@
   // to make sure it is of the correct type. If a value besides a function
   // is passed in, it will perform equality checks on it.
   //
-  // it has special handling for Number and String. Literals won't match an
-  // instanceof check, but will match with typeof.
+  // It has special handling for Number, String, and Boolean. Literals won't
+  // match an instanceof check, but will match with typeof.
   adt.only = function () {
     var types = adt.util.toArray(arguments);
     return function (x) {
@@ -395,6 +395,7 @@
           if (x instanceof type) return x;
           if (type === Number && typeof x === "number") return x;
           if (type === String && typeof x === "string") return x;
+          if (type === Boolean && typeof x === "boolean") return x;
         } else {
           if (type instanceof adt.__Base__ && type.equals(x)) return x;
           if (type === x) return x;

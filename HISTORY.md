@@ -1,3 +1,8 @@
+## 0.2.1
+
+* Far more flexible type creation.
+* Constraints for records.
+
 ## 0.2.0
 
 * Removed the lookup cache.

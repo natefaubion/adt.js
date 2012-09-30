@@ -72,6 +72,11 @@ suite("Core", function () {
     var foo3 = Foo.create({ a: 1, b: 2, c: 3, d: 4 });
     ok("`create` with key value pairs", foo3.a() === 1 && foo3.b() === 2 && foo3.c() === 3);
 
+    var foo4 = Foo(Foo(1, 2, 3, 4), 2, 3, 4);
+    var foo5 = foo4.clone();
+    ok('`clone` returns a copy', foo4.equals(foo5) && foo4 !== foo5);
+    ok('`clone` copies values', foo4.a() !== foo5.a());
+
     var arr = Foo.unapply(foo);
     var obj = Foo.unapplyObj(foo);
     ok("`unapply` returns array representation",

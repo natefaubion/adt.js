@@ -58,24 +58,24 @@ suite("Core", function () {
     var foo = Foo(1, 2, 3, 4);
     ok("Instance of adt base class", foo instanceof adt.__Base__);
     ok("Instance of constructor", foo instanceof Foo);
-    ok("Boilerplate getters", foo.a() === 1 && foo.b() === 2 && foo.c() === 3);
+    ok("Boilerplate getters", foo.a === 1 && foo.b === 2 && foo.c === 3);
     ok("Index based getters", foo.slot(0) === 1 && foo.slot(1) === 2 && foo.slot(2) === 3);
     ok("Name based getters", foo.slot('a') === 1 && foo.slot('b') === 2 && foo.slot('c') === 3);
 
     var foo2 = foo.set({ a: 4, b: 5 });
-    ok("`set` changes values", foo2.a() === 4 && foo2.b() === 5 && foo.c() === 3);
+    ok("`set` changes values", foo2.a === 4 && foo2.b === 5 && foo.c === 3);
     ok("`set` returns a copy", foo2 !== foo);
     ok("`equals` matches on an instance with the same values", foo.equals(Foo(1, 2, 3, 4)));
     ok("`equals` doesn't match on an instance on an instance with different values", !foo.equals(Foo(1, 2, 4, 5)));
     ok("`equals` matches on a deep structure", Foo(foo, 1, 2, 3).equals(Foo(Foo(1, 2, 3, 4), 1, 2, 3)));
 
     var foo3 = Foo.create({ a: 1, b: 2, c: 3, d: 4 });
-    ok("`create` with key value pairs", foo3.a() === 1 && foo3.b() === 2 && foo3.c() === 3);
+    ok("`create` with key value pairs", foo3.a === 1 && foo3.b === 2 && foo3.c === 3);
 
     var foo4 = Foo(Foo(1, 2, 3, 4), 2, 3, 4);
     var foo5 = foo4.clone();
     ok('`clone` returns a copy', foo4.equals(foo5) && foo4 !== foo5);
-    ok('`clone` copies values', foo4.a() !== foo5.a());
+    ok('`clone` copies values', foo4.a !== foo5.a);
 
     var arr = Foo.unapply(foo);
     var obj = Foo.unapplyObj(foo);

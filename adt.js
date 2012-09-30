@@ -263,7 +263,7 @@
       var i = 0, len = names.length, val;
       for (; i < len; i++) {
         val = this[names[i]]();
-        args.push(n instanceof adt.__Base__ ? val.clone : val);
+        args.push(n instanceof adt.__Base__ ? val.clone() : val);
       }
       return ctr.apply(null, args);
     };

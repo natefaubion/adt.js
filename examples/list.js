@@ -2,7 +2,7 @@ var adt = require("../adt");
 
 var List = adt.data(function () {
   this.apply = function (ctx, args) {
-    return List.fromArray(args);
+    return this.fromArray(args);
   };
 });
 

@@ -361,6 +361,39 @@ foo1.equals(foo2) === false;
 
 ---
 
+### adt.enumeration()
+
+Generates a family of types that can be compared using `lt`, `gt`, `lte`, `gte`,
+`eq`, and `neq`.
+
+```js
+var Days = adt.enumeration('Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun');
+var fri = Days.Fri();
+var wed = Days.Wed();
+wed.lt(fri) === true;
+fri.gt(wed) === true;
+fri.eq(foo); // Throws a TypeError
+```
+
+It also be used just like `adt.data`.
+
+```js
+var Days = adt.enumeration();
+var Mon = Days.type('Mon');
+var Tue = Days.type('Tue');
+// etc...
+
+// Or with a callback
+var Days = adt.enumeration(function (Days, type) {
+  type('Mon');
+  type('Tue');
+  // etc...
+});
+
+```
+
+---
+
 ### Constraints
 
 Constraints are functions that either raise an error for an invalid type or

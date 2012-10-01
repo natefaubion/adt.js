@@ -185,6 +185,22 @@ suite("Core", function () {
     ok("Correct `className`", Foo.A.className === 'A' && Foo.B.className === 'B');
   });
 
+  suite("adt.enumeration(typeNames...)", function () {
+    var Foo = adt.enumeration("A", "B");
+    var a = Foo.A(), b = Foo.B();
+
+    ok("`lt`", a.lt(b));
+    ok("not `lt`", !b.lt(a));
+    ok("`lte`", a.lte(a) && a.lte(b));
+    ok("not `lte`", !b.lte(a));
+    ok("`gt`", b.gt(a));
+    ok("not `gt`", !a.gt(b));
+    ok("`gte`", b.gte(a) && a.gte(a));
+    ok("not `gte`", !a.gte(b));
+    ok("`eq`", a.eq(a));
+    ok("`neq`", a.neq(b));
+  });
+
   suite("adt.only", function () {
     ok("Number", adt.only(Number)(42));
     ok("String", adt.only(String)("foo"));

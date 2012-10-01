@@ -154,7 +154,7 @@
 
     // If an object was returned in the callback, assume it's a mapping of
     // more types to add.
-    if (typeof types === 'object') {
+    if (typeof types === 'object' && !(types instanceof adt.__Base__)) {
       for (var name in types) D.type(name, types[name]);
     }
 
@@ -211,10 +211,10 @@
     // adt.record(fieldNames...)
     if (targ0 === 'string') {
       var args = adt.util.toArray(arguments);
-      var i = 0, len = args.length;
-      fields = {};
-      for (; i < len; i++) fields[args[i]] = null;
-      return adt.record(fields);
+      return adt.record(function (r, field) {
+        var i = 0, len = args.length;
+        for (; i < len; i++) field(args[i], adt.any);
+      });
     }
 
     // adt.record(fieldsObj)
@@ -361,7 +361,7 @@
 
     // If an object was returned in the callback, assume it's a mapping of
     // more fields to add.
-    if (typeof fields === 'object') {
+    if (typeof fields === 'object' && fields !== ctr) {
       for (var name in fields) ctr.field(name, fields[name]);
     }
 
@@ -386,6 +386,77 @@
     };
 
     return ctr;
+  };
+
+  // Enumerations are types that have an order and can be compared using lt,
+  // gt, lte, and gte.
+  adt.enumeration = function () {
+    var targ0 = typeof arguments[0];
+    
+    // adt.enumeration(typeNames...)
+    if (targ0 === 'string') {
+      var args = adt.util.toArray(arguments);
+      return adt.enumeration(function (r, type) {
+        var i = 0, len = args.length;
+        for (; i < len; i++) type(args[i]);
+      });
+    }
+
+    // Create the types
+    var E = adt.data.apply(null, arguments);
+
+    // Iterate through created types, applying an order meta attribute.
+    var i = 0, len = E.__names__.length, name;
+    for (; i < len; i++) {
+      name = E.__names__[i];
+      E[name].__order__ = i;
+    }
+
+    // Helper function to make sure we are comparing the same types. We can't
+    // compare the order of a different type, so it throws a TypeError if the
+    // types are incompatible.
+    function verifyType (that) {
+      if (!(that instanceof E)) throw new TypeError("Unexpected type");
+      return true;
+    }
+
+    // Less than
+    E.prototype.lt = function (that) {
+      return verifyType(that)
+          && this.constructor.__order__ < that.constructor.__order__;
+    };
+
+    // Less than or equal
+    E.prototype.lte = function (that) {
+      return verifyType(that)
+          && this.constructor.__order__ <= that.constructor.__order__;
+    };
+
+    // Greater than
+    E.prototype.gt = function (that) {
+      return verifyType(that)
+          && this.constructor.__order__ > that.constructor.__order__;
+    };
+
+    // Greater than or equal
+    E.prototype.gte = function (that) {
+      return verifyType(that)
+          && this.constructor.__order__ >= that.constructor.__order__;
+    };
+
+    // Equal (not that same as `equals`
+    E.prototype.eq = function (that) {
+      return verifyType(that)
+          && this.constructor.__order__ === that.constructor.__order__;
+    };
+
+    // Not equals
+    E.prototype.neq = function (that) {
+      return verifyType(that)
+          && this.constructor.__order__ !== that.constructor.__order__;
+    };
+
+    return E;
   };
 
   // A contraint function that will accept any value.

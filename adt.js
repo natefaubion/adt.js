@@ -279,7 +279,7 @@
         }
         field = names[field];
       } else {
-        if (names.indexOf(field) === -1) {
+        if (!constraints.hasOwnProperty(field)) {
           throw new Error("Field name does not exist");
         }
       }

@@ -1,3 +1,8 @@
+## 0.3.0
+
+* Added enumerations
+* Corrected `seel` to `seal`
+
 ## 0.2.1
 
 * Far more flexible type creation.

@@ -1,5 +1,10 @@
-// adt.js : Algebraic data types and immutable structures in Javascript
-// Nathan Faubion <nathan@n-son.com>
+// adt.js 
+// ------
+// Algebraic data types and immutable structures in Javascript
+//
+// version : 0.3.0
+// author  : Nathan Faubion <nathan@n-son.com>
+// license : MIT
 
 ;(function (window, module) {
   // adt namespace
@@ -47,25 +52,6 @@
     var args = slice.call(arguments, 1);
     return function () {
       return func.apply(this, args.concat(adt.util.toArray(arguments)));
-    };
-  };
-
-  // Automatically curries a function so that it can be called with too few
-  // arguments. Calling it with too few arguments will return a function that
-  // takes however many arguments are left.
-  // Adapted from http://fitzgen.github.com/wu.js/
-  adt.util.curry = function (func, len) {
-    if (len === undefined) len = func.length;
-    return function () {
-      var args = adt.util.toArray(arguments);
-      if (args.length < len) {
-        var applied = adt.util.partial.apply(this, [func].concat(args));
-        return len - args.length > 0
-          ? adt.util.curry(applied, len - args.length)
-          : applied;
-      } else {
-        return func.apply(this, args);
-      }
     };
   };
 
@@ -159,16 +145,16 @@
     }
 
     // Keep the type function around because it allows for nice type
-    // declarations, but give the option to seel it. This will call `seel`
+    // declarations, but give the option to seal it. This will call `seal`
     // on any sub types to.
-    D.seel = function () { 
-      var i = 0, len = names.length, seel;
+    D.seal = function () { 
+      var i = 0, len = names.length, seal;
       for (; i < len; i++) {
-        seel = this[name].seel;
-        seel instanceof Function && seel();
+        seal = this[name].seal;
+        seal instanceof Function && seal();
       }
       delete D.type;
-      delete D.seel;
+      delete D.seal;
       return D;
     };
 
@@ -231,20 +217,18 @@
     constraints = [];
 
     // A record's constructor can be called without `new` and will also throw
-    // an error if called with too many arguments. This constructor duplicates
-    // some of the util.curry function so it can initially match on the length
-    // of names (which we don't know yet, but will exist later on).
+    // an error if called with too many arguments. Its arguments can be curried
+    // as long as it isn't called with the `new` keyword.
     ctr = function () {
       var args = adt.util.toArray(arguments);
       var len = names.length;
-      if (args.length < len) {
-        var applied = adt.util.partial.apply(this, [ctr].concat(args));
-        return len - args.length > 0
-          ? adt.util.curry(applied, len - args.length)
-          : applied;
+      if (!(this instanceof ctr)) {
+        return args.length < len
+          ? adt.util.partial.apply(null, [ctr].concat(args))
+          : adt.util.ctrApply(ctr, args);
       } else {
-        if (!(this instanceof ctr)) return adt.util.ctrApply(ctr, args);
-        if (args.length > names.length) throw new Error("Too many arguments");
+        if (args.length < len) throw new Error("Too few arguments");
+        if (args.length > len) throw new Error("Too many arguments");
         for (var i = 0, len = args.length; i < len; i++) {
           this['_' + names[i]] = constraints[names[i]](args[i]);
         }
@@ -378,10 +362,10 @@
     ctr.__constraints__ = constraints;
 
     // Keep the field function around because it allows for nice type
-    // declarations, but give the option to seel it.
-    ctr.seel = function () { 
+    // declarations, but give the option to seal it.
+    ctr.seal = function () { 
       delete ctr.field;
-      delete ctr.seel;
+      delete ctr.seal;
       return ctr;
     };
 
@@ -420,40 +404,39 @@
       return true;
     }
 
+    // Helper to return the order of the particular instance
+    function order (that) {
+      return that.constructor.__order__;
+    }
+
     // Less than
     E.prototype.lt = function (that) {
-      return verifyType(that)
-          && this.constructor.__order__ < that.constructor.__order__;
+      return verifyType(that) && order(this) < order(that);
     };
 
     // Less than or equal
     E.prototype.lte = function (that) {
-      return verifyType(that)
-          && this.constructor.__order__ <= that.constructor.__order__;
+      return verifyType(that) && order(this) <= order(that);
     };
 
     // Greater than
     E.prototype.gt = function (that) {
-      return verifyType(that)
-          && this.constructor.__order__ > that.constructor.__order__;
+      return verifyType(that) && order(this) > order(that);
     };
 
     // Greater than or equal
     E.prototype.gte = function (that) {
-      return verifyType(that)
-          && this.constructor.__order__ >= that.constructor.__order__;
+      return verifyType(that) && order(this) >= order(that);
     };
 
     // Equal (not that same as `equals`
     E.prototype.eq = function (that) {
-      return verifyType(that)
-          && this.constructor.__order__ === that.constructor.__order__;
+      return verifyType(that) && order(this) === order(that);
     };
 
     // Not equals
     E.prototype.neq = function (that) {
-      return verifyType(that)
-          && this.constructor.__order__ !== that.constructor.__order__;
+      return verifyType(that) && order(this) !== order(that);
     };
 
     return E;
@@ -469,19 +452,19 @@
   // It has special handling for Number, String, and Boolean. Literals won't
   // match an instanceof check, but will match with typeof.
   adt.only = function () {
-    var types = adt.util.toArray(arguments);
+    var args = arguments;
     return function (x) {
-      var i = 0, len = types.length, type;
+      var i = 0, len = args.length, type;
       for (; i < len; i++) {
-        type = types[i];
+        type = args[i];
         if (type instanceof Function) {
-          if (x instanceof type) return x;
-          if (type === Number && typeof x === "number") return x;
-          if (type === String && typeof x === "string") return x;
-          if (type === Boolean && typeof x === "boolean") return x;
+          if (x instanceof type
+          || type === Number && typeof x === "number"
+          || type === String && typeof x === "string"
+          || type === Boolean && typeof x === "boolean") return x;
         } else {
-          if (type instanceof adt.__Base__ && type.equals(x)) return x;
-          if (type === x) return x;
+          if (type instanceof adt.__Base__ && type.equals(x)
+          || type === x) return x;
         }
       }
       throw new TypeError('Unexpected type');

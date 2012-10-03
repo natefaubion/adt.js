@@ -169,14 +169,14 @@ type will be created.
 var Just = Maybe.type('Just', { val: adt.any });
 ```
 
-#### seel()
+#### seal()
 
 Removes the ability to add new data types. You can call this if you don't want 
-anyone else further extending the family. This will also call `seel` on any
+anyone else further extending the family. This will also call `seal` on any
 child types.
 
 ```js
-Maybe.seel();
+Maybe.seal();
 
 // Throws an error
 Maybe.type( ... );
@@ -297,12 +297,12 @@ is provided, `adt.any` will be used.
 var Foo = adt.record().field('val', adt.only(String));
 ```
 
-#### seel()
+#### seal()
 
 Removes the ability to add new fields to the type.
 
 ```js
-var Foo = adt.record('foo', 'bar').seel();
+var Foo = adt.record('foo', 'bar').seal();
 
 // Throws an error
 Foo.field('bin')

@@ -96,8 +96,8 @@ suite("Core", function () {
       }, TypeError);
     });
 
-    Foo.seel();
-    ok("`seel` removes `field` and `seel`", !Foo.field && !Foo.seel);
+    Foo.seal();
+    ok("`seal` removes `field` and `seal`", !Foo.field && !Foo.seal);
   });
 
   suite("adt.record(fieldsObj)", function () {
@@ -168,9 +168,9 @@ suite("Core", function () {
     ok("Class has fields in right order", ns[0] === 'a' && ns[1] === 'b' && ns[2] === 'c');
     ok("Class has correct constraints", cs.a === adt.any && cs.b === adt.any && cs.c === constraint);
 
-    Foo.seel();
-    ok("`seel` removes `type` and `seel`", !Foo.type && !Foo.seel);
-    ok("`seel` calls `seel` on types", !Foo.A.seel && !Foo.A.field);
+    Foo.seal();
+    ok("`seal` removes `type` and `seal`", !Foo.type && !Foo.seal);
+    ok("`seal` calls `seal` on types", !Foo.A.seal && !Foo.A.field);
   });
 
   suite("adt.data(typesObj)", function () {

@@ -214,7 +214,7 @@
     // adt.record(callback)
     callback = arguments[0] || function () {};
     names = [];
-    constraints = [];
+    constraints = {};
 
     // A record's constructor can be called without `new` and will also throw
     // an error if called with too many arguments. Its arguments can be curried
@@ -230,7 +230,8 @@
         if (args.length < len) throw new Error("Too few arguments");
         if (args.length > len) throw new Error("Too many arguments");
         for (var i = 0, len = args.length; i < len; i++) {
-          this['_' + names[i]] = constraints[names[i]](args[i]);
+          var n = names[i];
+          this[n] = constraints[n](args[i]);
         }
       }
     };
@@ -246,7 +247,7 @@
       var args = [];
       var i = 0, len = names.length, val;
       for (; i < len; i++) {
-        val = this[names[i]]();
+        val = this[names[i]];
         args.push(val instanceof adt.__Base__ ? val.clone() : val);
       }
       return ctr.apply(null, args);
@@ -267,7 +268,7 @@
           throw new Error("Field name does not exist");
         }
       }
-      return this[field]();
+      return this[field];
     };
 
     // Returns a new instance.
@@ -276,8 +277,8 @@
       var i = 0, len = names.length, val, n;
       for (; i < len; i++) {
         n = names[i];
-        val = n in vals ? vals[n] : this[n]();
-        args.push(constraints[n](val));
+        val = n in vals ? vals[n] : this[n];
+        args.push(val);
       }
       return ctr.apply(null, args);
     };
@@ -290,8 +291,8 @@
         var i = 0, len = names.length;
         var vala, valb;
         for (; i < len; i++) {
-          vala = this[names[i]]();
-          valb = that[names[i]]();
+          vala = this[names[i]];
+          valb = that[names[i]];
           if (vala instanceof adt.__Base__) {
             if (!vala.equals(valb)) return false;
           } else if (vala !== valb) return false;
@@ -307,8 +308,8 @@
       var i = 0, len = names.length, n;
       for (; i < len; i++) {
         n = names[i];
-        if (!(n in vals)) throw new Error("Too few arguments");
-        args.push(constraints[n](vals[n]));
+        if (!(n in vals)) throw new Error("Could not find field in arguments: " + n);
+        args.push(vals[n]);
       }
       return ctr.apply(null, args);
     };
@@ -317,7 +318,7 @@
     ctr.unapply = function (inst) {
       var vals = [];
       var i = 0, len = names.length;
-      for (; i < len; i++) vals.push(inst[names[i]]());
+      for (; i < len; i++) vals.push(inst[names[i]]);
       return vals;
     };
 
@@ -325,7 +326,7 @@
     ctr.unapplyObj = function (inst) {
       var vals = {};
       var i = 0, len = names.length;
-      for (; i < len; i++) vals[names[i]] = inst[names[i]]();
+      for (; i < len; i++) vals[names[i]] = inst[names[i]];
       return vals;
     };
 
@@ -347,14 +348,6 @@
     // more fields to add.
     if (typeof fields === 'object' && fields !== ctr) {
       for (var name in fields) ctr.field(name, fields[name]);
-    }
-
-    // Generate boilerplate getters
-    var i = 0, len = names.length;
-    for (; i < len; i++) {
-      (function (n) {
-        ctr.prototype[n] = function () { return this['_' + n] };
-      })(names[i]);
     }
 
     // Export names and constraints as meta attributes.

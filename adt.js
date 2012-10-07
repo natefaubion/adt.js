@@ -214,7 +214,7 @@
     // adt.record(callback)
     callback = arguments[0] || function () {};
     names = [];
-    constraints = [];
+    constraints = {};
 
     // A record's constructor can be called without `new` and will also throw
     // an error if called with too many arguments. Its arguments can be curried
@@ -230,7 +230,8 @@
         if (args.length < len) throw new Error("Too few arguments");
         if (args.length > len) throw new Error("Too many arguments");
         for (var i = 0, len = args.length; i < len; i++) {
-          this[names[i]] = constraints[names[i]](args[i]);
+          var n = names[i];
+          this[n] = constraints[n](args[i]);
         }
       }
     };
@@ -277,7 +278,7 @@
       for (; i < len; i++) {
         n = names[i];
         val = n in vals ? vals[n] : this[n];
-        args.push(constraints[n](val));
+        args.push(val);
       }
       return ctr.apply(null, args);
     };
@@ -307,8 +308,8 @@
       var i = 0, len = names.length, n;
       for (; i < len; i++) {
         n = names[i];
-        if (!(n in vals)) throw new Error("Too few arguments");
-        args.push(constraints[n](vals[n]));
+        if (!(n in vals)) throw new Error("Could not find field in arguments: " + n);
+        args.push(vals[n]);
       }
       return ctr.apply(null, args);
     };

@@ -229,8 +229,9 @@
       } else {
         if (args.length < len) throw new Error("Too few arguments");
         if (args.length > len) throw new Error("Too many arguments");
-        for (var i = 0, len = args.length; i < len; i++) {
-          var n = names[i];
+        var i = 0, len = args.length, n;
+        for (; i < len; i++) {
+          n = names[i];
           this[n] = constraints[n](args[i]);
         }
       }
@@ -289,9 +290,9 @@
       if (this === that) return true;
       if (!(that instanceof ctr)) return false;
       var i = 0, len = names.length;
-      var vala, valb;
+      var vala, valb, n;
       for (; i < len; i++) {
-        var n = names[i];
+        n = names[i];
         vala = this[n];
         valb = that[n];
         if (vala instanceof adt.__Base__) {

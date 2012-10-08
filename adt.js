@@ -287,16 +287,16 @@
     // adt type. Any other types will just be compared using ===.
     ctr.prototype.equals = function (that) {
       if (this === that) return true;
-      if (that instanceof ctr) {
-        var i = 0, len = names.length;
-        var vala, valb;
-        for (; i < len; i++) {
-          vala = this[names[i]];
-          valb = that[names[i]];
-          if (vala instanceof adt.__Base__) {
-            if (!vala.equals(valb)) return false;
-          } else if (vala !== valb) return false;
-        }
+      if (!(that instanceof ctr)) return false;
+      var i = 0, len = names.length;
+      var vala, valb;
+      for (; i < len; i++) {
+        var n = names[i];
+        vala = this[n];
+        valb = that[n];
+        if (vala instanceof adt.__Base__) {
+          if (!vala.equals(valb)) return false;
+        } else if (vala !== valb) return false;
       }
       return true;
     };

@@ -15,14 +15,14 @@ suite("Examples", function () {
     var just = Maybe.Just(42);
     var noth = Maybe.Nothing();
 
-    ok("Just.map", just.map(times2).val() === 84);
+    ok("Just.map", just.map(times2).val === 84);
     ok("Nothing.map", noth.map(times2) === Maybe.Nothing());
     ok("Maybe.unit", Maybe.unit(42).equals(just));
 
     function one (x) { return Maybe.Just(x + 1); }
     function two (x) { return Maybe.Just(x + 2); }
     function not (x) { return Maybe.Nothing() }
-    ok("Bind with all Justs", just.then(one).then(two).val() === 45);
+    ok("Bind with all Justs", just.then(one).then(two).val === 45);
     ok("Bind with a Nothing in the middle", just.then(one).then(not).then(two) === Maybe.Nothing());
   });
 

@@ -1,3 +1,9 @@
+## 0.4.0
+
+* Changed field and typechecking methods to attributes to cut down on the
+paren noise.
+* Added `newtype`.
+
 ## 0.3.0
 
 * Added enumerations

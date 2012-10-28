@@ -1,6 +1,6 @@
 {
   "name": "adt",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "author": "Nathan Faubion <nathan@n-son.com>",
   "description": "Algebraic data types for Javascript",
   "scripts": {

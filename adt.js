@@ -232,7 +232,7 @@
         var i = 0, len = args.length, n;
         for (; i < len; i++) {
           n = names[i];
-          this['_' + n] = constraints[n](args[i]);
+          this[n] = constraints[n](args[i]);
         }
       }
     };
@@ -248,7 +248,7 @@
       var args = [];
       var i = 0, len = names.length, val;
       for (; i < len; i++) {
-        val = this[names[i]]();
+        val = this[names[i]];
         args.push(val instanceof adt.__Base__ ? val.clone() : val);
       }
       return ctr.apply(null, args);
@@ -269,7 +269,7 @@
           throw new Error("Field name does not exist");
         }
       }
-      return this[field]();
+      return this[field];
     };
 
     // Returns a new instance.
@@ -278,7 +278,7 @@
       var i = 0, len = names.length, val, n;
       for (; i < len; i++) {
         n = names[i];
-        val = n in vals ? vals[n] : this[n]();
+        val = n in vals ? vals[n] : this[n];
         args.push(val);
       }
       return ctr.apply(null, args);
@@ -293,8 +293,8 @@
       var vala, valb, n;
       for (; i < len; i++) {
         n = names[i];
-        vala = this[n]();
-        valb = that[n]();
+        vala = this[n];
+        valb = that[n];
         if (vala instanceof adt.__Base__) {
           if (!vala.equals(valb)) return false;
         } else if (vala !== valb) return false;
@@ -319,7 +319,7 @@
     ctr.unapply = function (inst) {
       var vals = [];
       var i = 0, len = names.length;
-      for (; i < len; i++) vals.push(inst[names[i]]());
+      for (; i < len; i++) vals.push(inst[names[i]]);
       return vals;
     };
 
@@ -327,7 +327,7 @@
     ctr.unapplyObj = function (inst) {
       var vals = {};
       var i = 0, len = names.length;
-      for (; i < len; i++) vals[names[i]] = inst[names[i]]();
+      for (; i < len; i++) vals[names[i]] = inst[names[i]];
       return vals;
     };
 
@@ -349,14 +349,6 @@
     // more fields to add.
     if (typeof fields === 'object' && fields !== ctr) {
       for (var name in fields) ctr.field(name, fields[name]);
-    }
-
-    // Generate boilerplate getters
-    var i = 0, len = names.length;
-    for (; i < len; i++) {
-      (function (n) {
-        ctr.prototype[n] = function () { return this['_' + n] };
-      })(names[i]);
     }
 
     // Export names and constraints as meta attributes.

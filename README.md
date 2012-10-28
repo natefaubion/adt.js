@@ -39,12 +39,12 @@ just.isJust() === true;
 // toString implementation
 just.toString() === "Just(42)"
 
-// Getters
-just.val() === 42;
+// Attributes
+just.val === 42;
 
 // Setters return a new instance
 var just2 = just.set({ val: 43 });
-just2.val() === 43;
+just2.val === 43;
 just2 !== just;
 
 // Equals method recursively compares inner values
@@ -234,8 +234,8 @@ any type.
 ```js
 var Foo = adt.record('bar', 'baz');
 var foo = Foo(42, null);
-foo.bar() === 42;
-foo.baz() === null;
+foo.bar === 42;
+foo.baz === null;
 ```
 
 You can also pass in an object:
@@ -251,9 +251,9 @@ var Foo = adt.record({
 });
 
 var foo = Foo(42, "foo", "12");
-foo.bar() === 42;
-foo.baz() === "foo";
-foo.bin() === 12;
+foo.bar === 42;
+foo.baz === "foo";
+foo.bin === 12;
 ```
 
 You can use chaining:
@@ -323,9 +323,13 @@ Returns a new instance with fields changed.
 ```js
 var foo = Foo(42, 'baz');
 var foo2 = foo.set({ bar: 12 });
-foo2.bar() === 12;
+foo2.bar === 12;
 foo2 !== foo;
 ```
+
+**Note:** `set` should almost always be used instead of attribute mutation.
+Just setting attributes using assignment bypasses any constraints on the field
+and can cause unexpected results.
 
 #### record.clone()
 
@@ -429,5 +433,5 @@ function toString (x) { return x.toString() };
 
 var Foo = adt.record({ bar: toString });
 var foo = Foo(12);
-foo.bar() === '12';
+foo.bar === '12';
 ```

@@ -120,10 +120,9 @@
       ctr.prototype.toString = adt.util.toString;
       ctr.className = name;
 
-      // Add a typechecking function to D for this type.
-      D.prototype["is" + name] = function () {
-        return this instanceof ctr;
-      };
+      // Add typechecking attributes for this type.
+      D.prototype["is" + name] = false;
+      ctr.prototype["is" + name] = true;
 
       // Extend the contructor's prototype with its old prototype since we
       // overwrote it making it a subclass of D.

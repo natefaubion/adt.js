@@ -21,7 +21,7 @@ List.fromArray = function (arr) {
 // Make it foldable
 List.prototype.foldl = function (fn, memo) {
   var item = this;
-  while (item.isCons()) {
+  while (item.isCons) {
     memo = fn(memo, item.head);
     item = item.tail;
   }
@@ -45,7 +45,7 @@ List.prototype.length = function () {
 
 // Concat two lists together
 List.prototype.concat = function (list) {
-  return this.isEmpty() ? list : Cons(this.head, this.tail.concat(list));
+  return this.isEmpty ? list : Cons(this.head, this.tail.concat(list));
 };
 
 // Flatten a level
@@ -57,7 +57,7 @@ List.prototype.flatten = function () {
 
 // Make it a functor
 List.prototype.map = function (fn) {
-  return this.isEmpty() ? this : Cons(fn(this.head), this.tail.map(fn));
+  return this.isEmpty ? this : Cons(fn(this.head), this.tail.map(fn));
 };
 
 // Make it a monad
@@ -66,7 +66,7 @@ List.unit = function (val) {
 };
 
 List.prototype.then = function (fn) {
-  return this.isEmpty() ? this : this.map(fn).flatten();
+  return this.isEmpty ? this : this.map(fn).flatten();
 };
 
 module.exports = List;

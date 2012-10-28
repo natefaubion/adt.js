@@ -32,9 +32,9 @@ noth === Nothing();
 // Types exported on the parent
 Maybe.Just === Just;
 
-// Type-checking methods
-just.isNothing() === false;
-just.isJust() === true;
+// Type-checking
+just.isNothing === false;
+just.isJust === true;
 
 // toString implementation
 just.toString() === "Just(42)"
@@ -393,7 +393,17 @@ var Days = adt.enumeration(function (Days, type) {
   type('Tue');
   // etc...
 });
+```
 
+---
+
+### adt.newtype()
+
+Creates a type that does not belong to a specific family. It's like calling
+`adt.data` and only adding one type to it.
+
+```js
+var Foo = adt.newtype('Foo', { bar: adt.any, baz: adt.any });
 ```
 
 ---

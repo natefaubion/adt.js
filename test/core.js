@@ -152,11 +152,11 @@ suite("Core", function () {
        e instanceof Foo);
 
     ok("Boilerplate type checking",
-       a.isA() && !a.isB() && !a.isC() && !a.isD() && !a.isE() &&
-       !b.isA() && b.isB() && !b.isC() && !b.isD() && !b.isE() &&
-       !c.isA() && !c.isB() && c.isC() && !c.isD() && !c.isE() &&
-       !d.isA() && !d.isB() && !d.isC() && d.isD() && !d.isE() &&
-       !e.isA() && !e.isB() && !e.isC() && !e.isD() && e.isE());
+       a.isA && !a.isB && !a.isC && !a.isD && !a.isE &&
+       !b.isA && b.isB && !b.isC && !b.isD && !b.isE &&
+       !c.isA && !c.isB && c.isC && !c.isD && !c.isE &&
+       !d.isA && !d.isB && !d.isC && d.isD && !d.isE &&
+       !e.isA && !e.isB && !e.isC && !e.isD && e.isE);
 
     ok("Correct `className`",
        Foo.A.className === 'A' && Foo.B.className === 'B' && Foo.C.className === 'C' &&
@@ -204,7 +204,7 @@ suite("Core", function () {
   suite("adt.newtype", function () {
     var Foo = adt.newtype("Foo", { a: adt.any, b: adt.any });
     var foo = Foo(1, 2);
-    ok("Typecheck", foo.isFoo());
+    ok("Typecheck", foo.isFoo);
     ok("Fields", foo.a === 1 && foo.b === 2);
   });
 

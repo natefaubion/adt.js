@@ -201,6 +201,13 @@ suite("Core", function () {
     ok("`neq`", a.neq(b));
   });
 
+  suite("adt.newtype", function () {
+    var Foo = adt.newtype("Foo", { a: adt.any, b: adt.any });
+    var foo = Foo(1, 2);
+    ok("Typecheck", foo.isFoo());
+    ok("Fields", foo.a === 1 && foo.b === 2);
+  });
+
   suite("adt.only", function () {
     ok("Number", adt.only(Number)(42));
     ok("String", adt.only(String)("foo"));

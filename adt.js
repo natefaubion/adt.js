@@ -444,6 +444,13 @@
     return E;
   };
 
+  // Creates a singleton type that belongs to its own family.
+  adt.newtype = function () {
+    var args = adt.util.toArray(arguments);
+    var data = adt.data();
+    return data.type.apply(data, args);
+  };
+
   // A contraint function that will accept any value.
   adt.any = function (x) { return x; };
 

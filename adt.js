@@ -22,7 +22,9 @@
 
   // Return an array of the supplied argument. Used for `arguments` objects.
   adt.util.toArray = function (a) {
-    return slice.call(a);
+    var dest = [], i = 0, len = a.length;
+    for (; i < len; i++) dest[i] = a[i];
+    return dest;
   };
 
   // A basic extend method for copying attributes of on object into another.

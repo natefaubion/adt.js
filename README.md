@@ -335,14 +335,15 @@ and can cause unexpected results.
 Recursively clones all values that are adt types. Native Javascript arrays and
 objects are not cloned but copied by reference.
 
-#### record.slot(index)
+#### record.get(index)
 
-Returns the value at the given index. Raises an error if the index is out of
-range.
+Returns the value at the given index or field name. Raises an error if the
+index is out of range.
 
 ```js
 var foo = Foo(42, 'baz');
-foo.slot(1) === 'baz';
+foo.get(1) === 'baz';
+foo.get('foo') === 42;
 ```
 
 #### record.equals(that)

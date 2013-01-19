@@ -51,8 +51,8 @@ suite('Core', function () {
     ok('Instance of adt base class', foo instanceof adt.__Base__);
     ok('Instance of constructor', foo instanceof Foo);
     ok('Boilerplate getters', foo.a === 1 && foo.b === 2 && foo.c === 3);
-    ok('Index based getters', foo.slot(0) === 1 && foo.slot(1) === 2 && foo.slot(2) === 3);
-    ok('Name based getters', foo.slot('a') === 1 && foo.slot('b') === 2 && foo.slot('c') === 3);
+    ok('Index based getters', foo.get(0) === 1 && foo.get(1) === 2 && foo.get(2) === 3);
+    ok('Name based getters', foo.get('a') === 1 && foo.get('b') === 2 && foo.get('c') === 3);
 
     var foo2 = foo.set({ a: 4, b: 5 });
     ok('`set` changes values', foo2.a === 4 && foo2.b === 5 && foo.c === 3);

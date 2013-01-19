@@ -244,7 +244,7 @@
 
       // Lookup fields by either name or index. Throws an error if the name
       // doesn't exist or if the index is out of range.
-      ctr.prototype.slot = function (field) {
+      ctr.prototype.get = function (field) {
         if (typeof field === 'number') {
           if (field < 0 || field > names.length - 1) {
             throw new Error('Field index out of range');

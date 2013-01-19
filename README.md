@@ -371,8 +371,8 @@ Generates a family of types that can be compared using `lt`, `gt`, `lte`, `gte`,
 
 ```js
 var Days = adt.enumeration('Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun');
-var fri = Days.Fri();
-var wed = Days.Wed();
+var fri = Days.Fri;
+var wed = Days.Wed;
 wed.lt(fri) === true;
 fri.gt(wed) === true;
 fri.eq(foo); // Throws a TypeError

@@ -1,4 +1,4 @@
-var adt = require("../adt");
+var adt = require('../adt');
 
 var List = adt.data(function () {
   this.apply = function (ctx, args) {
@@ -6,12 +6,12 @@ var List = adt.data(function () {
   };
 });
 
-var Empty = List.type("Empty");
-var Cons  = List.type("Cons", { head: adt.any, tail: adt.only(List) });
+var Empty = List.type('Empty');
+var Cons  = List.type('Cons', { head: adt.any, tail: adt.only(List) });
 
 // Create a list from an array
 List.fromArray = function (arr) {
-  var i = arr.length, l = Empty();
+  var i = arr.length, l = Empty;
   while (i--) {
     l = Cons(arr[i], l);
   }
@@ -52,7 +52,7 @@ List.prototype.concat = function (list) {
 List.prototype.flatten = function () {
   return this.foldl(function (memo, list) {
     return memo.concat(list);
-  }, Empty());
+  }, Empty);
 };
 
 // Make it a functor
@@ -62,7 +62,7 @@ List.prototype.map = function (fn) {
 
 // Make it a monad
 List.unit = function (val) {
-  return Cons(val, Empty());
+  return Cons(val, Empty);
 };
 
 List.prototype.then = function (fn) {

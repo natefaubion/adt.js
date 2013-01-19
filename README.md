@@ -12,22 +12,19 @@ Examples
 --------
 
 ```js
-var adt = require("adt");
+var adt = require('adt');
 
 // Create a new Maybe type
 var Maybe = adt.data();
 var Nothing = Maybe.type('Nothing');
 var Just = Maybe.type('Just', { val: adt.any });
 
-var noth = Nothing();
+var noth = Nothing;
 var just = Just(42);
 
 // Inheritance
 just instanceof Just;
 just instanceof Maybe;
-
-// Singles always return the same instance
-noth === Nothing();
 
 // Types exported on the parent
 Maybe.Just === Just;
@@ -37,7 +34,7 @@ just.isNothing === false;
 just.isJust === true;
 
 // toString implementation
-just.toString() === "Just(42)"
+just.toString() === 'Just(42)'
 
 // Attributes
 just.val === 42;
@@ -58,17 +55,17 @@ var Empty = List.type('Empty');
 var Cons = List.type('Cons', { head: adt.any, tail: adt.only(List) });
 
 // Arguments can be applied by order
-var list = Cons(42, Empty());
+var list = Cons(42, Empty);
 
 // Or by key-value pairs using create
 var list = Cons.create({
   head: 42,
-  tail: Empty()
+  tail: Empty
 });
 
 // Constructors can be curried
 var partial = Cons(42);
-var list = partial(Empty());
+var list = partial(Empty);
 ```
 
 Pattern Matching
@@ -209,30 +206,31 @@ list.toString() === "Cons(1, Cons(2, Cons(3, Empty)))"
 
 ### adt.single()
 
-Generates a singleton type. Every call to the constructor returns the same
-instance.
+Returns a constructor factory function for singleton types. The subsequent
+function takes a parent and name as arguments and returns an instance of the
+new type.
 
 ```js
-var Foo = adt.single();
-var foo = Foo();
-foo === Foo();
+// A new singleton type that inherits from the adt base class.
+var fooFactory = adt.single();
+var Foo = fooFactory(adt.__Base__, 'Foo');
 ```
-
-Note: an orphan adt.single type won't have any type-checking methods, a
-`toString` method or pattern matching integration.
 
 ---
 
 ### adt.record()
 
-Generates a type that can hold other types using named fields. Fields can have
-constraints to only allow certain types or to coerce one type to another.
+Returns a type factory for types that can hold other types using named fields. 
+Fields can have constraints to only allow certain types or to coerce one type 
+to another.
 
 You can create a record by passing in field names. These fields will allow
 any type.
 
 ```js
-var Foo = adt.record('bar', 'baz');
+var fooFactory = adt.record('bar', 'baz');
+var Foo = fooFactory(adt.__Base__, 'Foo');
+
 var foo = Foo(42, null);
 foo.bar === 42;
 foo.baz === null;
@@ -241,7 +239,7 @@ foo.baz === null;
 You can also pass in an object:
 
 ```js
-var Foo = adt.record({
+var fooFactory = adt.record({
   // Allow any value
   bar: adt.any,
   // Allow only strings
@@ -249,6 +247,7 @@ var Foo = adt.record({
   // Try to coerce a value to an integer
   bin: parseInt
 });
+var Foo = fooFactory(adt.__Base__, 'Foo');
 
 var foo = Foo(42, "foo", "12");
 foo.bar === 42;
@@ -259,10 +258,10 @@ foo.bin === 12;
 You can use chaining:
 
 ```js
-var Foo = 
-  adt.record()
-    .field('bar')
-    .field('baz', adt.only(String))
+var fooFactory = adt.record()
+var Foo = fooFactory(adt.__Base__, 'Foo')
+  .field('bar')
+  .field('baz', adt.only(String))
 ```
 
 Finally, you can use a callback. The callback is passed two arguments, the
@@ -271,13 +270,13 @@ type.
 
 ```js
 // Configure using the `field` function
-var Foo = adt.record(function (Foo, field) {
+var fooFactory = adt.record(function (Foo, field) {
   field('bar');
   field('baz', adt.only(String));
 });
 
 // Configure by returning a template
-var Foo = adt.record(function () {
+var fooFactory = adt.record(function () {
   return {
     bar: adt.any,
     baz: adt.only(String)
@@ -285,8 +284,8 @@ var Foo = adt.record(function () {
 });
 ```
 
-Note: an orphan adt.record type won't have any type-checking methods, a
-`toString` method or pattern matching integration.
+Note: You should never need to invoke the factory youself. It should always
+be passed to `adt.data`.
 
 #### field(name, constraint)
 

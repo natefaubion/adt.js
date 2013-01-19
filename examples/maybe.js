@@ -1,8 +1,8 @@
-var adt = require("../adt");
+var adt = require('../adt');
 
 var Maybe   = adt.data();
-var Nothing = Maybe.type("Nothing");
-var Just    = Maybe.type("Just", { val: adt.any });
+var Nothing = Maybe.type('Nothing');
+var Just    = Maybe.type('Just', { val: adt.any });
 
 // Make it a functor.
 Maybe.prototype.map = function (fn) {

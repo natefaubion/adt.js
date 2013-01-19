@@ -2,7 +2,7 @@
 // ------
 // Algebraic data types and immutable structures in Javascript
 //
-// version : 0.4.0
+// version : 0.5.0
 // author  : Nathan Faubion <nathan@n-son.com>
 // license : MIT
 
@@ -52,16 +52,7 @@
     var args = slice.call(arguments, 1);
     return function () {
       return func.apply(this, args.concat(adt.util.toArray(arguments)));
-    };
-  };
-
-  // A shared `toString` method that will work with any adt type that has a
-  // className set on the constructor.
-  adt.util.toString = function () {
-    var ctr = this.constructor;
-    var name = ctr.className || "Anonymous";
-    var vals = ctr.unapply(this);
-    return name + (vals.length ? "(" + vals.join(", ") + ")" : "");
+    };;
   };
 
   // Base class from which all adt.js classes inherit.
@@ -77,7 +68,7 @@
     var callback, types, names;
 
     // adt.data(typesObj)
-    if (targ0 === "object") {
+    if (targ0 === 'object') {
       types = arguments[0];
       
       // Call adt.data again with a desugared callback.
@@ -104,34 +95,22 @@
     D.prototype = new adt.__Base__();
 
     // Declares an adt type as part of the family.
-    D.type = function (name, ctr) {
-      if (typeof name !== "string") {
-        ctr = name;
-        name = uniqueId("Anonymous");
+    D.type = function (name, tmpl) {
+      if (typeof name !== 'string') {
+        tmpl = name;
+        name = uniqueId('Anonymous');
       }
-      // Create a new adt constructor if not provided with one
-      if (!ctr) ctr = adt.single();
-      else if (!(ctr.prototype instanceof adt.__Base__)) ctr = adt.record(ctr);
-
-      // Reset the prototype so its a subclass of D.
-      var proto = ctr.prototype;
-      ctr.prototype = new D();
-      ctr.prototype.constructor = ctr;
-      ctr.prototype.toString = adt.util.toString;
-      ctr.className = name;
+      // Create a new adt template if not provided with one
+      if (!tmpl) tmpl = adt.single();
+      else if (typeof tmpl !== 'function') tmpl = adt.record(tmpl);
 
       // Add typechecking attributes for this type.
-      D.prototype["is" + name] = false;
-      ctr.prototype["is" + name] = true;
+      D.prototype['is' + name] = false;
 
-      // Extend the contructor's prototype with its old prototype since we
-      // overwrote it making it a subclass of D.
-      adt.util.extend(ctr.prototype, proto);
-
-      // Export constructor as a static property on the parent class.
-      D[name] = ctr;
+      // Call the template to build our type and export it on the parent type.
+      D[name] = tmpl(D, name);
       names.push(name);
-      return ctr;
+      return D[name];
     };
 
     // Call the callback with the constructor as the context.
@@ -140,7 +119,10 @@
     // If an object was returned in the callback, assume it's a mapping of
     // more types to add.
     if (typeof types === 'object' && !(types instanceof adt.__Base__)) {
-      for (var name in types) D.type(name, types[name]);
+      for (var name in types) {
+        if (!types.hasOwnProperty(name)) continue;
+        D.type(name, types[name]);
+      }
     }
 
     // Keep the type function around because it allows for nice type
@@ -165,25 +147,23 @@
   // Create a single empty class that always return the same instance.
   // Useful for sentinal values such as Nothing, Empty, etc.
   adt.single = function () {
-    var inst, ctr;
-
+    var ctr, inst;
     ctr = function () {
       if (!(this instanceof ctr)) return new ctr();
       if (inst) return inst;
       inst = this;
     };
 
-    ctr.prototype = new adt.__Base__();
-    ctr.prototype.constructor = ctr;
-
-    ctr.prototype.clone = function () { return inst; };
-    ctr.prototype.equals = function (obj) { return this === obj; };
-
-    ctr.create = function () { return ctr(); };
-    ctr.unapply = function () { return []; };
-    ctr.unapplyObj = function () { return {}; };
-
-    return ctr;
+    return function (parent, name) {
+      ctr.className = name;
+      ctr.prototype = new parent();
+      ctr.prototype.constructor = ctr;
+      ctr.prototype.clone = function () { return inst; };
+      ctr.prototype.equals = function (obj) { return this === obj; };
+      ctr.prototype.toString = function () { return name; };
+      ctr.prototype['is' + name] = true;
+      return new ctr();
+    };
   };
 
   // Create a new class that has named fields. Each value can be obtained by
@@ -226,8 +206,8 @@
           ? adt.util.partial.apply(null, [ctr].concat(args))
           : adt.util.ctrApply(ctr, args);
       } else {
-        if (args.length < len) throw new Error("Too few arguments");
-        if (args.length > len) throw new Error("Too many arguments");
+        if (args.length < len) throw new Error('Too few arguments');
+        if (args.length > len) throw new Error('Too many arguments');
         var i = 0, len = args.length, n;
         for (; i < len; i++) {
           n = names[i];
@@ -236,133 +216,142 @@
       }
     };
 
-    // Inherit from Base in case someone wants to create a record outside of
-    // a call to adt.data.
-    ctr.prototype = new adt.__Base__();
-    ctr.prototype.constructor = ctr;
+    return function (parent, name) {
+      ctr.className = name;
+      ctr.prototype = new parent();
+      ctr.prototype.constructor = ctr;
+      ctr.prototype['is' + name] = true;
 
-    // This clone method will clone any values that are also adt types and
-    // leaves anything else alone.
-    ctr.prototype.clone = function () {
-      var args = [];
-      var i = 0, len = names.length, val;
-      for (; i < len; i++) {
-        val = this[names[i]];
-        args.push(val instanceof adt.__Base__ ? val.clone() : val);
-      }
-      return ctr.apply(null, args);
-    };
+      // Custom `toString` implementation.
+      ctr.prototype.toString = function () {
+        var vals = ctr.unapply(this);
+        return name + (vals.length ? '(' + vals.join(', ') + ')' : '');
+      };
 
-    // Lookup a field's value by either name or index. Looking up by name
-    // requires that we use indexOf to verify that the field exists. Normally
-    // in js, it would just return undefined, but undefined is a valid value
-    // with these types.
-    ctr.prototype.slot = function (field) {
-      if (typeof field === "number") {
-        if (field < 0 || field > names.length - 1) {
-          throw new Error("Field index out of range");
+      // This clone method will clone any values that are also adt types and
+      // leaves anything else alone.
+      ctr.prototype.clone = function () {
+        var args = [];
+        var i = 0, len = names.length, val;
+        for (; i < len; i++) {
+          val = this[names[i]];
+          args.push(val instanceof adt.__Base__ ? val.clone() : val);
         }
-        field = names[field];
-      } else {
-        if (!constraints.hasOwnProperty(field)) {
-          throw new Error("Field name does not exist");
+        return ctr.apply(null, args);
+      };
+
+      // Lookup fields by either name or index. Throws an error if the name
+      // doesn't exist or if the index is out of range.
+      ctr.prototype.slot = function (field) {
+        if (typeof field === 'number') {
+          if (field < 0 || field > names.length - 1) {
+            throw new Error('Field index out of range');
+          }
+          field = names[field];
+        } else {
+          if (!constraints.hasOwnProperty(field)) {
+            throw new Error('Field name does not exist');
+          }
+        }
+        return this[field];
+      };
+
+      // Creates a new instance with the specified values changed.
+      ctr.prototype.set = function (vals) {
+        var args = []
+        var i = 0, len = names.length, val, n;
+        for (; i < len; i++) {
+          n = names[i];
+          val = n in vals ? vals[n] : this[n];
+          args.push(val);
+        }
+        return ctr.apply(null, args);
+      };
+      
+      // Performs deep equality checks on each field as long as it holds an
+      // adt type. Any other types will just be compared using ===.
+      ctr.prototype.equals = function (that) {
+        if (this === that) return true;
+        if (!(that instanceof ctr)) return false;
+        var i = 0, len = names.length;
+        var vala, valb, n;
+        for (; i < len; i++) {
+          n = names[i];
+          vala = this[n];
+          valb = that[n];
+          if (vala instanceof adt.__Base__) {
+            if (!vala.equals(valb)) return false;
+          } else if (vala !== valb) return false;
+        }
+        return true;
+      };
+
+      // Creates a new instance using key-value pairs instead of by
+      // positional arguments.
+      ctr.create = function (vals) {
+        var args = [];
+        var i = 0, len = names.length, n;
+        for (; i < len; i++) {
+          n = names[i];
+          if (!(n in vals)) throw new Error('Could not find field in arguments: ' + n);
+          args.push(vals[n]);
+        }
+        return ctr.apply(null, args);
+      };
+      
+      // Returns an array representation of the fields.
+      ctr.unapply = function (inst) {
+        var vals = [];
+        var i = 0, len = names.length;
+        for (; i < len; i++) vals.push(inst[names[i]]);
+        return vals;
+      };
+
+      // Returns an object representation of the field.
+      ctr.unapplyObj = function (inst) {
+        var vals = {};
+        var i = 0, len = names.length;
+        for (; i < len; i++) vals[names[i]] = inst[names[i]];
+        return vals;
+      };
+
+      // Declares a field as part of the type.
+      ctr.field = function (name, constraint) {
+        if (!constraint) constraint = adt.any;
+        if (typeof constraint !== 'function') {
+          throw new TypeError('Constraints must be functions')
+        }
+        names.push(name);
+        constraints[name] = constraint;
+        return ctr;
+      };
+
+      // Call the callback with the contructor as the context.
+      fields = callback.call(ctr, ctr, ctr.field);
+
+      // If an object was returned in the callback, assume it's a mapping of
+      // more fields to add.
+      if (typeof fields === 'object' && fields !== ctr) {
+        for (var name in fields) {
+          if (!fields.hasOwnProperty(name)) continue;
+          ctr.field(name, fields[name]);
         }
       }
-      return this[field];
-    };
 
-    // Returns a new instance.
-    ctr.prototype.set = function (vals) {
-      var args = []
-      var i = 0, len = names.length, val, n;
-      for (; i < len; i++) {
-        n = names[i];
-        val = n in vals ? vals[n] : this[n];
-        args.push(val);
-      }
-      return ctr.apply(null, args);
-    };
+      // Export names and constraints as meta attributes.
+      ctr.__names__ = names;
+      ctr.__constraints__ = constraints;
 
-    // Performs deep equality checks on each field as long as it holds an
-    // adt type. Any other types will just be compared using ===.
-    ctr.prototype.equals = function (that) {
-      if (this === that) return true;
-      if (!(that instanceof ctr)) return false;
-      var i = 0, len = names.length;
-      var vala, valb, n;
-      for (; i < len; i++) {
-        n = names[i];
-        vala = this[n];
-        valb = that[n];
-        if (vala instanceof adt.__Base__) {
-          if (!vala.equals(valb)) return false;
-        } else if (vala !== valb) return false;
-      }
-      return true;
-    };
+      // Keep the field function around because it allows for nice type
+      // declarations, but give the option to seal it.
+      ctr.seal = function () { 
+        delete ctr.field;
+        delete ctr.seal;
+        return ctr;
+      };
 
-    // Creates a new instance using key-value pairs instead of by
-    // positional arguments.
-    ctr.create = function (vals) {
-      var args = [];
-      var i = 0, len = names.length, n;
-      for (; i < len; i++) {
-        n = names[i];
-        if (!(n in vals)) throw new Error("Could not find field in arguments: " + n);
-        args.push(vals[n]);
-      }
-      return ctr.apply(null, args);
-    };
-
-    // Returns an array representation of the fields
-    ctr.unapply = function (inst) {
-      var vals = [];
-      var i = 0, len = names.length;
-      for (; i < len; i++) vals.push(inst[names[i]]);
-      return vals;
-    };
-
-    // Returns an object representation of the field
-    ctr.unapplyObj = function (inst) {
-      var vals = {};
-      var i = 0, len = names.length;
-      for (; i < len; i++) vals[names[i]] = inst[names[i]];
-      return vals;
-    };
-
-    // Declares a field as part of the type.
-    ctr.field = function (name, constraint) {
-      if (!constraint) constraint = adt.any;
-      if (typeof constraint !== 'function') {
-        throw new TypeError('Constraints must be functions')
-      }
-      names.push(name);
-      constraints[name] = constraint;
       return ctr;
     };
-
-    // Call the callback with the contructor as the context.
-    fields = callback.call(ctr, ctr, ctr.field);
-
-    // If an object was returned in the callback, assume it's a mapping of
-    // more fields to add.
-    if (typeof fields === 'object' && fields !== ctr) {
-      for (var name in fields) ctr.field(name, fields[name]);
-    }
-
-    // Export names and constraints as meta attributes.
-    ctr.__names__ = names;
-    ctr.__constraints__ = constraints;
-
-    // Keep the field function around because it allows for nice type
-    // declarations, but give the option to seal it.
-    ctr.seal = function () { 
-      delete ctr.field;
-      delete ctr.seal;
-      return ctr;
-    };
-
-    return ctr;
   };
 
   // Enumerations are types that have an order and can be compared using lt,
@@ -385,15 +374,16 @@
     // Iterate through created types, applying an order meta attribute.
     var i = 0, len = E.__names__.length, name;
     for (; i < len; i++) {
-      name = E.__names__[i];
-      E[name].__order__ = i;
+      ctr = E[E.__names__[i]];
+      if (ctr.constructor) ctr = ctr.constructor;
+      ctr.__order__ = i;
     }
 
     // Helper function to make sure we are comparing the same types. We can't
     // compare the order of a different type, so it throws a TypeError if the
     // types are incompatible.
     function verifyType (that) {
-      if (!(that instanceof E)) throw new TypeError("Unexpected type");
+      if (!(that instanceof E)) throw new TypeError('Unexpected type');
       return true;
     }
 
@@ -459,9 +449,9 @@
         type = args[i];
         if (type instanceof Function) {
           if (x instanceof type
-          || type === Number && typeof x === "number"
-          || type === String && typeof x === "string"
-          || type === Boolean && typeof x === "boolean") return x;
+          || type === Number && typeof x === 'number'
+          || type === String && typeof x === 'string'
+          || type === Boolean && typeof x === 'boolean') return x;
         } else {
           if (type instanceof adt.__Base__ && type.equals(x)
           || type === x) return x;
@@ -478,6 +468,6 @@
   })();
 
 })(
-  typeof window !== "undefined" ? window : {},
-  typeof module !== "undefined" ? module : {}
+  typeof window !== 'undefined' ? window : {},
+  typeof module !== 'undefined' ? module : {}
 );

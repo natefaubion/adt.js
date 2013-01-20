@@ -32,7 +32,7 @@
     var args = slice.call(arguments, 1);
     for (var i = 0, len = args.length; i < len; i++) {
       for (var k in args[i]) {
-        dest[k] = args[i][k];
+        if (args[i].hasOwnProperty(k)) dest[k] = args[i][k];
       }
     }
     return dest;
@@ -122,8 +122,7 @@
     // more types to add.
     if (typeof types === 'object' && !(types instanceof adt.__Base__)) {
       for (var name in types) {
-        if (!types.hasOwnProperty(name)) continue;
-        D.type(name, types[name]);
+        if (types.hasOwnProperty(name)) D.type(name, types[name]);
       }
     }
 

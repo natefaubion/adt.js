@@ -66,6 +66,12 @@
     return sub;
   };
 
+  // Helper function to return a unique id
+  adt.util.uniqueId = (function () {
+    var id = 0;
+    return function (pre) { return pre + (id++); };
+  })();
+
   // Base class from which all adt.js classes inherit.
   // All adt.js classes should have a clone method that clones the
   // object as best it can.
@@ -106,7 +112,7 @@
     D.type = function (name, tmpl) {
       if (typeof name !== 'string') {
         tmpl = name;
-        name = uniqueId('Anonymous');
+        name = adt.util.uniqueId('Anonymous');
       }
       // Create a new adt template if not provided with one
       if (!tmpl) tmpl = adt.single();
@@ -465,12 +471,6 @@
       throw new TypeError('Unexpected type');
     };
   };
-
-  // Helper function to return a unique id
-  var uniqueId = (function () {
-    var id = 0;
-    return function (pre) { return pre + (id++); };
-  })();
 
 })(
   typeof window !== 'undefined' ? window : {},

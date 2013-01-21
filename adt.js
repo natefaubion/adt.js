@@ -54,7 +54,16 @@
     var args = slice.call(arguments, 1);
     return function () {
       return func.apply(this, args.concat(adt.util.toArray(arguments)));
-    };;
+    };
+  };
+
+  // Standard inheritance helper.
+  adt.util.inherit = function (sup, sub) {
+    var C = function () {};
+    C.prototype = sup.prototype;
+    sub.prototype = new C();
+    sub.prototype.constructor = sub;
+    return sub;
   };
 
   // Base class from which all adt.js classes inherit.
@@ -87,14 +96,11 @@
     // This class should never be created using `new`. You obviously can,
     // but it won't be of much use. You can however override the apply method
     // to create default instances.
-    var D = function () {
+    var D = adt.util.inherit(adt.__Base__, function () {
       if (!(this instanceof D) && D.apply !== funcApply) {
         return D.apply(this, arguments);
       }
-    };
-
-    // Make it an instance of the adt Base class.
-    D.prototype = new adt.__Base__();
+    });
 
     // Declares an adt type as part of the family.
     D.type = function (name, tmpl) {
@@ -156,9 +162,8 @@
     };
 
     return function (parent, name) {
+      adt.util.inherit(parent, ctr);
       ctr.className = name;
-      ctr.prototype = new parent();
-      ctr.prototype.constructor = ctr;
       ctr.prototype.clone = function () { return inst; };
       ctr.prototype.equals = function (obj) { return this === obj; };
       ctr.prototype.toString = function () { return name; };
@@ -218,9 +223,8 @@
     };
 
     return function (parent, name) {
+      adt.util.inherit(parent, ctr);
       ctr.className = name;
-      ctr.prototype = new parent();
-      ctr.prototype.constructor = ctr;
       ctr.prototype['is' + name] = true;
 
       // Custom `toString` implementation.

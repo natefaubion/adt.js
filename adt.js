@@ -6,19 +6,13 @@
 // author  : Nathan Faubion <nathan@n-son.com>
 // license : MIT
 
-;(function (window, module) {
-  // adt namespace
-  var adt = {};
-
-  // Export
-  window.adt = module.exports = adt;
-
-  // Utility functions
-  adt.util = {};
-
+;(function (adt) {
   // Cache some prototype methods for easy use.
   var slice = Array.prototype.slice;
   var funcApply = Function.prototype.apply;
+
+  // Utility functions
+  adt.util = {};
 
   // Return an array of the supplied argument. Used for `arguments` objects.
   adt.util.toArray = function (a) {
@@ -471,8 +465,6 @@
       throw new TypeError('Unexpected type');
     };
   };
-
 })(
-  typeof window !== 'undefined' ? window : {},
-  typeof module !== 'undefined' ? module : {}
+  typeof exports !== 'undefined' ? exports : (this.adt = {})
 );

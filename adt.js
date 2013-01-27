@@ -7,6 +7,8 @@
 // license : MIT
 
 ;(function (adt) {
+  'use strict';
+
   // Cache some prototype methods for easy use.
   var slice = Array.prototype.slice;
   var funcApply = Function.prototype.apply;
@@ -61,10 +63,9 @@
   };
 
   // Helper function to return a unique id
-  adt.util.uniqueId = (function () {
-    var id = 0;
+  adt.util.uniqueId = (function (id) {
     return function (pre) { return pre + (id++); };
-  })();
+  })(0);
 
   // Base class from which all adt.js classes inherit.
   // All adt.js classes should have a clone method that clones the
@@ -375,13 +376,13 @@
 
     // Create the types
     var E = adt.data.apply(null, arguments);
+    var order = 0;
 
-    // Iterate through created types, applying an order meta attribute.
-    var i = 0, len = E.__names__.length, name;
-    for (; i < len; i++) {
-      ctr = E[E.__names__[i]];
-      if (ctr.constructor) ctr = ctr.constructor;
-      ctr.__order__ = i;
+    // Helper to add the order attribute to a type.
+    function addOrder (that) {
+      if (that.constructor) that = that.constructor;
+      that.__order__ = order++;
+      return that;
     }
 
     // Helper function to make sure we are comparing the same types. We can't
@@ -393,38 +394,48 @@
     }
 
     // Helper to return the order of the particular instance
-    function order (that) {
+    function orderOf (that) {
       return that.constructor.__order__;
     }
 
+    // Iterate through created types, applying an order meta attribute.
+    var i = 0, len = E.__names__.length;
+    for (; i < len; i++) addOrder(E[E.__names__[i]]);
+
+    // Patch the type function to also add an order to any types created later.
+    var oldType = E.type;
+    E.type = function (name, tmpl) {
+      return addOrder(oldType.call(E, name, tmpl));
+    };
+
     // Less than
     E.prototype.lt = function (that) {
-      return verifyType(that) && order(this) < order(that);
+      return verifyType(that) && orderOf(this) < orderOf(that);
     };
 
     // Less than or equal
     E.prototype.lte = function (that) {
-      return verifyType(that) && order(this) <= order(that);
+      return verifyType(that) && orderOf(this) <= orderOf(that);
     };
 
     // Greater than
     E.prototype.gt = function (that) {
-      return verifyType(that) && order(this) > order(that);
+      return verifyType(that) && orderOf(this) > orderOf(that);
     };
 
     // Greater than or equal
     E.prototype.gte = function (that) {
-      return verifyType(that) && order(this) >= order(that);
+      return verifyType(that) && orderOf(this) >= orderOf(that);
     };
 
     // Equal (not that same as `equals`
     E.prototype.eq = function (that) {
-      return verifyType(that) && order(this) === order(that);
+      return verifyType(that) && orderOf(this) === orderOf(that);
     };
 
     // Not equals
     E.prototype.neq = function (that) {
-      return verifyType(that) && order(this) !== order(that);
+      return verifyType(that) && orderOf(this) !== orderOf(that);
     };
 
     return E;

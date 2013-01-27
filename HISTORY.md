@@ -1,3 +1,11 @@
+## 0.5.0
+
+* `single` and `record` now act as factory factories so that we can call the
+returned function later withing `type` to create the actual type. This was,
+singles don't need to be instanciated with parens, and we don't have to splice
+the prototypes to setup the inheritance.
+* `slot` was renamed to `get`.
+
 ## 0.4.0
 
 * Changed field and typechecking methods to attributes to cut down on the

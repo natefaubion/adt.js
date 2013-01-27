@@ -194,6 +194,14 @@ suite('Core', function () {
     ok('`neq`', a.neq(b));
   });
 
+  suite('adt.enumeration.type()', function () {
+    var Foo = adt.enumeration('A');
+    Foo.type('B');
+    var a = Foo.A, b = Foo.B;
+
+    ok('B is greater than A', b.gt(a));
+  });
+
   suite('adt.newtype', function () {
     var Foo = adt.newtype('Foo', { a: adt.any, b: adt.any });
     var foo = Foo(1, 2);

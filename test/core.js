@@ -15,12 +15,18 @@ function throws (name, fn, type) {
 
 suite('Core', function () {
   suite('adt.single()', function () {
-    var Foo = adt.single()(adt.__Base__);
+    var Foo = adt.single()(adt.__Base__, 'Foo');
     var foo = Foo;
     ok('Instance of adt base class', foo instanceof adt.__Base__);
     ok('`clone` returns the same instance', foo.clone() === foo);
     ok('`equals` matches same instance', foo.equals(Foo));
     ok('`equals` does not match something else', !foo.equals(12));
+    ok('`toJSON` returns null by default', Foo.toJSON() === null);
+  });
+
+  suite('adt.single(val)', function () {
+    var Foo = adt.single(42)(adt.__Base__);
+    ok('`toJSON` returns value', Foo.toJSON() === 42);
   });
   
   var constraint = function (x) {
@@ -76,6 +82,10 @@ suite('Core', function () {
        arr[0] === 1 && arr[1] === 2 && arr[2] === 3 && arr[3] === 4);
 
     ok('`unapplyObj` returns object representation', 
+       obj instanceof Object && Object.keys(obj).length === 4 &&
+       obj.a === 1 && obj.b === 2 && obj.c === 3 && obj.d === 4);
+
+    ok('`toJSON` returns object representation', 
        obj instanceof Object && Object.keys(obj).length === 4 &&
        obj.a === 1 && obj.b === 2 && obj.c === 3 && obj.d === 4);
 
@@ -164,6 +174,11 @@ suite('Core', function () {
     Foo.seal();
     ok('`seal` removes `type` and `seal`', !Foo.type && !Foo.seal);
     ok('`seal` calls `seal` on types', !Foo.A.seal && !Foo.A.field);
+  });
+
+  suite('adt.data(typeNames...)', function () {
+    var Foo = adt.data('A', 'B', 'C');
+    ok('Single types are created', Foo.A && Foo.B && Foo.C);
   });
 
   suite('adt.data(typesObj)', function () {

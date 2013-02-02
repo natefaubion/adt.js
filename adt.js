@@ -64,25 +64,55 @@
 
   // Helper function to return a unique id
   adt.util.uniqueId = (function (id) {
-    return function (pre) { return pre + (id++); };
+    return function (pre) { return (pre || '') + id++; };
   })(0);
 
+  // Checks if a value is one of the given types.
+  adt.util.typeCheck = function (types, x) {
+    var i = 0, len = types.length, type;
+    for (; i < len; i++) {
+      type = types[i];
+      if (type instanceof Function) {
+        if (x instanceof type
+        || type === Number && typeof x === 'number'
+        || type === String && typeof x === 'string'
+        || type === Boolean && typeof x === 'boolean') return true;
+      } else {
+        if (type instanceof adt.__Base__ && type.equals(x)
+        || type === x) return true;
+      }
+    }
+    return false;
+  };
+
+  // Checks if a val has a `toJSON` method, and if so returns that result,
+  // otherwise just returns the value.
+  adt.util.toJSONValue = function (val) {
+    return val && typeof val === 'object' && val.toJSON ? val.toJSON() : val;
+  };
+
   // Base class from which all adt.js classes inherit.
-  // All adt.js classes should have a clone method that clones the
-  // object as best it can.
+  // All adt.js classes should have a `clone` method that clones the
+  // object as best it can and an `equals` method.
   adt.__Base__ = function () {};
 
-  // Generates a new set of Algebraic data types. This will create a lot of
-  // boilerplate to help with type checking. Each type will get is<type>()
-  // methods that return true or false.
+  // Creates a new family from which you can create data types.
   adt.data = function () {
     var targ0 = typeof arguments[0];
     var callback, types, names;
 
+    // adt.data(typeNames...)
+    if (targ0 === 'string') {
+      var args = arguments;
+      return adt.data(function (r, type) {
+        var i = 0, len = args.length;
+        for (; i < len; i++) type(args[i]);
+      });
+    }
+
     // adt.data(typesObj)
     if (targ0 === 'object') {
       types = arguments[0];
-      
       // Call adt.data again with a desugared callback.
       return adt.data(function (d, type) {
         for (var name in types) type(name, types[name]);
@@ -109,8 +139,10 @@
         tmpl = name;
         name = adt.util.uniqueId('Anonymous');
       }
+      
       // Create a new adt template if not provided with one
-      if (!tmpl) tmpl = adt.single();
+      var isSingle = adt.util.typeCheck([String, Boolean, Number, null, void 0], tmpl);
+      if (isSingle) tmpl = adt.single(tmpl);
       else if (typeof tmpl !== 'function') tmpl = adt.record(tmpl);
 
       // Add typechecking attributes for this type.
@@ -137,9 +169,9 @@
     // declarations, but give the option to seal it. This will call `seal`
     // on any sub types to.
     D.seal = function () { 
-      var i = 0, len = names.length, seal;
-      for (; i < len; i++) {
-        seal = this[name].seal;
+      var i = 0, n, seal, name;
+      for (; n = names[i]; i++) {
+        seal = this[n].seal;
         seal instanceof Function && seal();
       }
       delete D.type;
@@ -152,37 +184,32 @@
     return D;
   };
 
-  // Create a single empty class that always return the same instance.
-  // Useful for sentinal values such as Nothing, Empty, etc.
-  adt.single = function () {
-    var ctr, inst;
-    ctr = function () {
-      if (!(this instanceof ctr)) return new ctr();
-      if (inst) return inst;
-      inst = this;
-    };
-
+  // Create a single empty class instance. Useful for sentinal values such as
+  // Nothing, Empty, etc. You can pass in a value that the class will use
+  // during JSON serialization.
+  adt.single = function (val) {
+    if (typeof val === 'undefined') val = null;
+    var ctr = function () {};
     return function (parent, name) {
       adt.util.inherit(parent, ctr);
       ctr.className = name;
-      ctr.prototype.clone = function () { return inst; };
+      ctr.prototype.clone = function () { return this; };
       ctr.prototype.equals = function (obj) { return this === obj; };
       ctr.prototype.toString = function () { return name; };
+      ctr.prototype.toJSON = function () { return val; };
       ctr.prototype['is' + name] = true;
       return new ctr();
     };
   };
 
-  // Create a new class that has named fields. Each value can be obtained by
-  // calling the name as a method. Each value can be changed by calling `set`
-  // with an object of values to update. `set` returns a clone of the object.
+  // Create a new class that has named fields.
   adt.record = function () {
     var targ0 = typeof arguments[0];
     var names, constraints, ctr, fields, callback;
     
     // adt.record(fieldNames...)
     if (targ0 === 'string') {
-      var args = adt.util.toArray(arguments);
+      var args = arguments;
       return adt.record(function (r, field) {
         var i = 0, len = args.length;
         for (; i < len; i++) field(args[i], adt.any);
@@ -215,11 +242,8 @@
       } else {
         if (args.length < len) throw new Error('Too few arguments');
         if (args.length > len) throw new Error('Too many arguments');
-        var i = 0, len = args.length, n;
-        for (; i < len; i++) {
-          n = names[i];
-          this[n] = constraints[n](args[i]);
-        }
+        var i = 0, n;
+        for (; n = names[i]; i++) this[n] = constraints[n](args[i]);
       }
     };
 
@@ -237,11 +261,10 @@
       // This clone method will clone any values that are also adt types and
       // leaves anything else alone.
       ctr.prototype.clone = function () {
-        var args = [];
-        var i = 0, len = names.length, val;
-        for (; i < len; i++) {
-          val = this[names[i]];
-          args.push(val instanceof adt.__Base__ ? val.clone() : val);
+        var args = [], i = 0, n, val;
+        for (; n = names[i]; i++) {
+          val = this[n];
+          args[i] = val instanceof adt.__Base__ ? val.clone() : val;
         }
         return ctr.apply(null, args);
       };
@@ -264,13 +287,8 @@
 
       // Creates a new instance with the specified values changed.
       ctr.prototype.set = function (vals) {
-        var args = []
-        var i = 0, len = names.length, val, n;
-        for (; i < len; i++) {
-          n = names[i];
-          val = n in vals ? vals[n] : this[n];
-          args.push(val);
-        }
+        var args = [], i = 0, n;
+        for (; n = names[i]; i++) args[i] = n in vals ? vals[n] : this[n];
         return ctr.apply(null, args);
       };
       
@@ -300,25 +318,29 @@
         for (; i < len; i++) {
           n = names[i];
           if (!(n in vals)) throw new Error('Could not find field in arguments: ' + n);
-          args.push(vals[n]);
+          args[i] = vals[n];
         }
         return ctr.apply(null, args);
       };
       
       // Returns an array representation of the fields.
       ctr.unapply = function (inst) {
-        var vals = [];
-        var i = 0, len = names.length;
-        for (; i < len; i++) vals.push(inst[names[i]]);
+        var vals = [], i = 0, n;
+        for (; n = names[i]; i++) vals[i] = inst[n];
         return vals;
       };
 
-      // Returns an object representation of the field.
-      ctr.unapplyObj = function (inst) {
-        var vals = {};
-        var i = 0, len = names.length;
-        for (; i < len; i++) vals[names[i]] = inst[names[i]];
+      // Returns an object representation of the field. You can optionally
+      // provide a function to map over the values.
+      ctr.unapplyObj = function (inst, fn) {
+        var vals = {}, i = 0, n;
+        for (; n = names[i]; i++) vals[n] = fn ? fn(inst[n], n) : inst[n];
         return vals;
+      };
+
+      // Returns a plain object representation of the data.
+      ctr.prototype.toJSON = function () {
+        return ctr.unapplyObj(this, adt.util.toJSONValue);
       };
 
       // Declares a field as part of the type.
@@ -363,17 +385,6 @@
   // Enumerations are types that have an order and can be compared using lt,
   // gt, lte, and gte.
   adt.enumeration = function () {
-    var targ0 = typeof arguments[0];
-    
-    // adt.enumeration(typeNames...)
-    if (targ0 === 'string') {
-      var args = adt.util.toArray(arguments);
-      return adt.enumeration(function (r, type) {
-        var i = 0, len = args.length;
-        for (; i < len; i++) type(args[i]);
-      });
-    }
-
     // Create the types
     var E = adt.data.apply(null, arguments);
     var order = 0;
@@ -399,8 +410,8 @@
     }
 
     // Iterate through created types, applying an order meta attribute.
-    var i = 0, len = E.__names__.length;
-    for (; i < len; i++) addOrder(E[E.__names__[i]]);
+    var i = 0, n;
+    for (; n = E.__names__[i]; i++) addOrder(E[n]);
 
     // Patch the type function to also add an order to any types created later.
     var oldType = E.type;
@@ -452,27 +463,12 @@
   adt.any = function (x) { return x; };
 
   // A constraint generator that will perform instanceof checks on the value
-  // to make sure it is of the correct type. If a value besides a function
-  // is passed in, it will perform equality checks on it.
-  //
-  // It has special handling for Number, String, and Boolean. Literals won't
-  // match an instanceof check, but will match with typeof.
+  // to make sure it is of the correct type.
+  // TODO: This needs a more helpful error message.
   adt.only = function () {
     var args = arguments;
     return function (x) {
-      var i = 0, len = args.length, type;
-      for (; i < len; i++) {
-        type = args[i];
-        if (type instanceof Function) {
-          if (x instanceof type
-          || type === Number && typeof x === 'number'
-          || type === String && typeof x === 'string'
-          || type === Boolean && typeof x === 'boolean') return x;
-        } else {
-          if (type instanceof adt.__Base__ && type.equals(x)
-          || type === x) return x;
-        }
-      }
+      if (adt.util.typeCheck(args, x)) return x;
       throw new TypeError('Unexpected type');
     };
   };

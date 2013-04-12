@@ -17,7 +17,7 @@ suite('Examples', function () {
 
     ok('Just.map', just.map(times2).val === 84);
     ok('Nothing.map', noth.map(times2) === Maybe.Nothing);
-    ok('Maybe.unit', Maybe.unit(42).equals(just));
+    ok('Maybe.of', Maybe.of(42).equals(just));
 
     function one (x) { return Maybe.Just(x + 1); }
     function two (x) { return Maybe.Just(x + 2); }
@@ -34,7 +34,7 @@ suite('Examples', function () {
 
     ok('List.fromArray', List.fromArray([1, 2, 3]).equals(list));
     ok('List.apply', List(1, 2, 3).equals(list));
-    ok('List.foldl', list.foldl(fadd, 0) === 6);
+    ok('List.reduce', list.reduce(fadd, 0) === 6);
     ok('List.length', list.length() === 3);
 
     var arr = list.toArray();
@@ -42,7 +42,7 @@ suite('Examples', function () {
     ok('List.concat', list.concat(List(4, 5, 6)).equals(List(1, 2, 3, 4, 5, 6)));
     ok('List.flatten', List(list, List(4, 5, 6)).flatten().equals(List(1, 2, 3, 4, 5, 6)));
     ok('List.map', list.map(mtwo).equals(List(2, 4, 6)));
-    ok('List.unit', List.unit(42).equals(List(42)));
+    ok('List.of', List.of(42).equals(List(42)));
     ok('List bind', list.then(function (x) { return List(x, x) })
            .equals(List(1, 1, 2, 2, 3, 3)));
   });

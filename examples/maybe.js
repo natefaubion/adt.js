@@ -10,11 +10,10 @@ Maybe.prototype.map = function (fn) {
 };
 
 // Make it a monad.
-Maybe.unit = function (val) {
+Maybe.of = function (val) {
   return Just(val);
 };
 
-// Call bind `then` so that it doesn't clash with the semantics of js bind
 Maybe.prototype.then = function (fn) {
   return this.isNothing ? this : fn(this.val);
 };

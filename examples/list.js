@@ -19,7 +19,7 @@ List.fromArray = function (arr) {
 };
 
 // Make it foldable
-List.prototype.foldl = function (fn, memo) {
+List.prototype.reduce = function (fn, memo) {
   var item = this;
   while (item.isCons) {
     memo = fn(memo, item.head);
@@ -30,7 +30,7 @@ List.prototype.foldl = function (fn, memo) {
 
 // Create an array from a list
 List.prototype.toArray = function () {
-  return this.foldl(function (arr, val) {
+  return this.reduce(function (arr, val) {
     arr.push(val);
     return arr;
   }, []);
@@ -38,7 +38,7 @@ List.prototype.toArray = function () {
 
 // Find the length of the list
 List.prototype.length = function () {
-  return this.foldl(function (len, val) {
+  return this.reduce(function (len, val) {
     return len + 1;
   }, 0);
 };
@@ -50,7 +50,7 @@ List.prototype.concat = function (list) {
 
 // Flatten a level
 List.prototype.flatten = function () {
-  return this.foldl(function (memo, list) {
+  return this.reduce(function (memo, list) {
     return memo.concat(list);
   }, Empty);
 };
@@ -61,7 +61,7 @@ List.prototype.map = function (fn) {
 };
 
 // Make it a monad
-List.unit = function (val) {
+List.of = function (val) {
   return Cons(val, Empty);
 };
 

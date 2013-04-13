@@ -22,8 +22,8 @@ suite('Examples', function () {
     function one (x) { return Maybe.Just(x + 1); }
     function two (x) { return Maybe.Just(x + 2); }
     function not (x) { return Maybe.Nothing; }
-    ok('Bind with all Justs', just.then(one).then(two).val === 45);
-    ok('Bind with a Nothing in the middle', just.then(one).then(not).then(two) === Maybe.Nothing);
+    ok('Bind with all Justs', just.chain(one).chain(two).val === 45);
+    ok('Bind with a Nothing in the middle', just.chain(one).chain(not).chain(two) === Maybe.Nothing);
   });
 
   suite('List', function () {
@@ -43,7 +43,7 @@ suite('Examples', function () {
     ok('List.flatten', List(list, List(4, 5, 6)).flatten().equals(List(1, 2, 3, 4, 5, 6)));
     ok('List.map', list.map(mtwo).equals(List(2, 4, 6)));
     ok('List.of', List.of(42).equals(List(42)));
-    ok('List bind', list.then(function (x) { return List(x, x) })
+    ok('List bind', list.chain(function (x) { return List(x, x) })
            .equals(List(1, 1, 2, 2, 3, 3)));
   });
 });

@@ -10,12 +10,12 @@ Maybe.prototype.map = function (fn) {
 };
 
 // Make it a monad.
-Maybe.of = function (val) {
-  return Just(val);
+Maybe.prototype.chain = function (fn) {
+  return this.isNothing ? this : fn(this.val);
 };
 
-Maybe.prototype.then = function (fn) {
-  return this.isNothing ? this : fn(this.val);
+Maybe.of = function (val) {
+  return Just(val);
 };
 
 module.exports = Maybe;

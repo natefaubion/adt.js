@@ -61,12 +61,12 @@ List.prototype.map = function (fn) {
 };
 
 // Make it a monad
-List.of = function (val) {
-  return Cons(val, Empty);
+List.prototype.chain = function (fn) {
+  return this.isEmpty ? this : this.map(fn).flatten();
 };
 
-List.prototype.then = function (fn) {
-  return this.isEmpty ? this : this.map(fn).flatten();
+List.of = function (val) {
+  return Cons(val, Empty);
 };
 
 module.exports = List;

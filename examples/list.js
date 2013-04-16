@@ -69,4 +69,11 @@ List.of = function (val) {
   return Cons(val, Empty);
 };
 
-module.exports = List;
+// Make it an applicative
+List.prototype.ap = function (val) {
+  return this.isEmpty ? this : this.chain(function (fn) {
+    return val.map(fn);
+  });
+};
+
+module.exports = List.seal();

@@ -18,4 +18,9 @@ Maybe.of = function (val) {
   return Just(val);
 };
 
-module.exports = Maybe;
+// Make it an applicative.
+Maybe.prototype.ap = function (arg) {
+  return this.isNothing ? this : arg.map(this.val);
+};
+
+module.exports = Maybe.seal();

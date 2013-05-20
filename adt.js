@@ -264,7 +264,9 @@
         var args = [], i = 0, n, val;
         for (; n = names[i]; i++) {
           val = this[n];
-          args[i] = val instanceof adt.__Base__ ? val.clone() : val;
+          args[i] = val instanceof adt.__Base__ 
+            ? val.clone()
+            : adt.nativeClone(val);
         }
         return ctr.apply(null, args);
       };
@@ -274,12 +276,12 @@
       ctr.prototype.get = function (field) {
         if (typeof field === 'number') {
           if (field < 0 || field > names.length - 1) {
-            throw new Error('Field index out of range');
+            throw new Error('Field index out of range: ' + field);
           }
           field = names[field];
         } else {
           if (!constraints.hasOwnProperty(field)) {
-            throw new Error('Field name does not exist');
+            throw new Error('Field name does not exist: ' + field);
           }
         }
         return this[field];
@@ -305,7 +307,7 @@
           valb = that[n];
           if (vala instanceof adt.__Base__) {
             if (!vala.equals(valb)) return false;
-          } else if (vala !== valb) return false;
+          } else if (!adt.nativeEquals(vala, valb)) return false;
         }
         return true;
       };
@@ -472,6 +474,12 @@
       throw new TypeError('Unexpected type');
     };
   };
+
+  // Cloning for native JS types just returns a reference.
+  adt.nativeClone = function (x) { return x; };
+
+  // Equality for native JS types is just strict comparison.
+  adt.nativeEquals = function (a, b) { return a === b; };
 })(
   typeof exports !== 'undefined' ? exports : (this.adt = {})
 );

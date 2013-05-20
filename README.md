@@ -8,13 +8,11 @@ Features
 
 adt.js gives you the following for free:
 
-* Inheritance for use with `instanceof` (e.g `instanceof Maybe`)
-* Type-checking attributes (e.g. `obj.isSomething`)
-* Immutablity (`set` returns a new instance)
-* Deep-equality using `equals`
+* Immutablity
+* Type-checking attributes
+* Deep equality and cloning
 * Curried constructors
-* `toString` implementations
-* `toJSON` implementations
+* `toString` and `toJSON` implementations
 * Enumerations
 
 Install
@@ -54,7 +52,7 @@ var noth = Maybe.Nothing;
 var just = Maybe.Just(42);
 
 // Inheritance
-(just instanceof Just) === true;
+(just instanceof Maybe.Just) === true;
 (just instanceof Maybe) === true;
 
 // Type-checking
@@ -114,7 +112,8 @@ type this wasn't necessary, because we didn't need to reference the ADT itself.
 But here, we want to use `adt.only` to put a constraint on the value of `tail`
 so it can only contain `List` types. If we left out the lambda and just used
 the object literal syntax, `List` wouldn't exist when we try to pass it to
-`adt.only` and we'd get a `ReferenceError`.
+`adt.only` and we'd get a `ReferenceError`. See the end of this document for
+an alternative that does not require a lambda.
 
 And now let's put it to good use:
 
@@ -136,8 +135,8 @@ List.Cons.create({
 });
 
 // Curried constructor
-var listPartial = List(12);
-var list3 = listPartial(List.Nil);
+var consPartial = List.Cons(12);
+var list3 = consPartial(List.Nil);
 
 // Constraints
 List.Cons(42, 12) // TypeError!
@@ -212,9 +211,6 @@ var Lonely = adt.newtype('Lonely', {
   value: ady.any
 });
 ```
-
-If you don't have any need for `toString`, you can leave off the first string
-argument.
 
 Constraints
 -----------
@@ -291,23 +287,8 @@ var List = adt.data(function (type, List) {
 });
 ```
 
-In fact, this is just the desugared form of the terse API.
-
-Deep Equality
--------------
-
-adt.js only performs deep equality on adt.js types. It does not perform deep
-equality on native arrays or objects. Anything that is not an adt.js type is
-compared using strict equality (`===`).
-
-```js
-var arr = [1, 2, 3];
-var just1 = Just(arr);
-var just2 = Just(arr);
-
-just1.equals(just2) === true;
-just1.equals(Just([1, 2, 3])) === false;
-```
+In fact, this is just the desugared form of the terse API. See the end of this
+document for an alternative that uses chaining instead of lambdas and closures.
 
 Immutability
 ------------
@@ -328,6 +309,30 @@ just1.value.foo = 'baz';
 just2.value.foo === 'baz';
 ```
 
+Deep Equality
+-------------
+
+adt.js only performs deep equality on adt.js types. It does not perform deep
+equality on native arrays or objects. Anything that is not an adt.js type is
+compared using strict equality (`===`).
+
+```js
+var arr = [1, 2, 3];
+var just1 = Just(arr);
+var just2 = Just(arr);
+
+just1.equals(just2) === true;
+just1.equals(Just([1, 2, 3])) === false;
+```
+
+If you would like to extend this behavior, you can override the default method
+for equality on native JS types. For example, if you were using lodash:
+
+```js
+// Deep equality on all native JS types (Objects, Arrays, RegExps, Dates, etc.)
+adt.nativeEquals = _.isEqual;
+```
+
 Cloning
 -------
 
@@ -342,6 +347,13 @@ var just2 = just.clone();
 
 just2.value === 42;
 just1 !== just2;
+```
+
+As with equality, you can extend the default cloning behavior for native JS
+types. Using lodash:
+
+```js
+adt.nativeClone = _.cloneDeep;
 ```
 
 Overriding `apply`
@@ -415,8 +427,8 @@ var Cons = List.type('Cons', {
 });
 ```
 
-This has the advantage of shaving off a few lines but requires name
-duplication for `toString` and pattern matching to work.
+This has the advantage of shaving off a few lines but requires some name
+duplication.
 
 Another way of defining "safe" types is to use chaining instead of a closure:
 

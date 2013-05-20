@@ -1,447 +1,432 @@
 adt.js
 ======
 
-Algebraic data types and immutable structures in Javascript.
+Algebraic data types and immutable structures for Javascript.
+
+Features
+--------
+
+adt.js gives you the following for free:
+
+* Inheritance for use with `instanceof` (e.g `instanceof Maybe`)
+* Type-checking attributes (e.g. `obj.isSomething`)
+* Immutablity (`set` returns a new instance)
+* Deep-equality using `equals`
+* Curried constructors
+* `toString` implementations
+* `toJSON` implementations
+* Enumerations
 
 Install
 -------
 
 `npm install adt`
 
-Examples
---------
+Basic Usage
+-----------
+
+Let's start by creating a simple `Maybe` ADT for possible failure:
+
+**JS:**
+``` js
+var adt = require('adt');
+var Maybe = adt.data({
+  Nothing: null,
+  Just: { value: adt.any }
+});
+```
+
+**CS:**
+```coffee
+{data, any, only} = require 'adt'
+Maybe = data
+  Nothing : null
+  Just :
+    value : any
+```
+`adt.any` is a value constraint that will allow anything. If you wanted to
+restrict the type, you could use `adt.only`.
+
+Here's how you might use our new data type:
 
 ```js
-var adt = require('adt');
-
-// Create a new Maybe type
-var Maybe = adt.data();
-var Nothing = Maybe.type('Nothing');
-var Just = Maybe.type('Just', { val: adt.any });
-
-var noth = Nothing;
-var just = Just(42);
+var noth = Maybe.Nothing;
+var just = Maybe.Just(42);
 
 // Inheritance
-just instanceof Just;
-just instanceof Maybe;
-
-// Types exported on the parent
-Maybe.Just === Just;
+(just instanceof Just) === true;
+(just instanceof Maybe) === true;
 
 // Type-checking
 just.isNothing === false;
 just.isJust === true;
 
-// toString implementation
-just.toString() === 'Just(42)'
+// Record attributes
+just.value === 42;
 
-// Attributes
-just.val === 42;
+// Immutablity: `set` returns a new instance
+var just2 = just.set({ value: 43 });
+just !== just2;
 
-// Setters return a new instance
-var just2 = just.set({ val: 43 });
-just2.val === 43;
-just2 !== just;
+// Retrieve values by name or by index
+just.get('value') === 42;
+just.get(0) === 42;
+just.get(1); // Error: Out of range
 
-// Equals method recursively compares inner values
-var recjust1 = Just(Just(42));
-var recjust2 = Just(Just(42));
-recjust1.equals(recjust2) === true;
+// `toString` implementation
+just.toString() === 'Just(42)';
+```
 
-// Create a new linked-list type
-var List = adt.data();
-var Empty = List.type('Empty');
-var Cons = List.type('Cons', { head: adt.any, tail: adt.only(List) });
+Since `Nothing` is not a record (it doesn't have any data attributes), it
+exists as a singleton instance and does not need to be instanciated.
 
-// Arguments can be applied by order
-var list = Cons(42, Empty);
+Recursive Types
+---------------
 
-// Or by key-value pairs using create
-var list = Cons.create({
+Let's define a linked-list type:
+
+**JS:**
+```js
+var adt = require('adt');
+var List = adt.data(function () {
+  return {
+    Nil: null,
+    Cons: {
+      head: adt.any,
+      tail: adt.only(this)
+    }
+  };
+});
+```
+
+**CS:**
+```coffee
+{data, any, only} = require 'adt'
+List = data ->
+  Nil : null
+  Cons :
+    head : any
+    tail : only this
+```
+
+Note that we've introduced a lambda to house our definition. With our `Maybe`
+type this wasn't necessary, because we didn't need to reference the ADT itself.
+But here, we want to use `adt.only` to put a constraint on the value of `tail`
+so it can only contain `List` types. If we left out the lambda and just used
+the object literal syntax, `List` wouldn't exist when we try to pass it to
+`adt.only` and we'd get a `ReferenceError`.
+
+And now let's put it to good use:
+
+```js
+var list = List.Cons(12, List.Cons(42, List.Nil));
+
+// Record attributes
+list.head === 12;
+list.tail.toString() === 'Cons(42, Nil)';
+
+// Deep equality
+var list2 = List.Cons(42, List.Nil);
+list.tail.equals(list2) === true;
+
+// Instanciate with key/value pairs
+List.Cons.create({
   head: 42,
-  tail: Empty
+  tail: List.Nil
 });
 
-// Constructors can be curried
-var partial = Cons(42);
-var list = partial(Empty);
+// Curried constructor
+var listPartial = List(12);
+var list3 = listPartial(List.Nil);
+
+// Constraints
+List.Cons(42, 12) // TypeError!
+```
+
+Enumerations
+------------
+
+Let's define a simple days-of-the-week enum:
+
+```js
+var Days = adt.enumeration('Sun', 'Mon', 'Tues', 'Wed', 'Thur', 'Fri', 'Sat');
+```
+
+Enumerations can be compared using `lt`, `lte`, `eq`, `gte`, and `gt`.
+
+```js
+var day1 = Days.Tues;
+var day2 = Days.Fri;
+
+day1.lt(day2) === true;
+day2.gt(day1) === true;
+day1.eq(Days.Mon) === false;
+```
+
+Enumerations can also have constant values for JSON serialization:
+
+```js
+var Days2 = adt.enumeration({
+  Sun  : 1,
+  Mon  : 2,
+  Tues : 3,
+  Wed  : 4,
+  Thur : 5,
+  Fri  : 6,
+  Sat  : 7
+});
+
+// Our previous definition serializes everything to null.
+Days.Mon.toJSON() === null;
+
+// But our new one serializes to an integer.
+Days2.Mon.toJSON() === 2;
+```
+
+Note that the value you give it does not affect the comparison methods. That
+is determined solely by insertion order.
+
+Enumerations aren't really special. They are just normal ADTs with some extra
+behavior. You are not restricted to only using singleton types like we did
+above. You could just as easily have an enum of record types too. Likewise, you
+can also give a value to any singleton type. `null` is just the default value
+and often times a good representation of the type (Nothing, Nil, Empty, etc).
+
+Newtypes
+--------
+
+Sometimes you just need a type that exists by itself. Use `adt.newtype` as
+a shortcut:
+
+```js
+// Instead of this:
+var Lonely = adt.data({
+  Lonely: {
+    value: adt.any
+  }
+});
+Lonely = Lonely.Lonely;
+
+// Do this:
+var Lonely = adt.newtype('Lonely', {
+  value: ady.any
+});
+```
+
+If you don't have any need for `toString`, you can leave off the first string
+argument.
+
+Constraints
+-----------
+
+adt.js has two builtin value constraints: `any`, to represent the lack of a
+constraint, and `only`, to restrict a value to certain types.
+
+```js
+// `any` is an id function
+adt.any(12) === 12;
+adt.any('Foo') === 'Foo';
+
+// Only is a constraint factory
+var onlyNumbers = adt.only(Number);
+var onlyStrings = adt.only(String);
+var onlyPrimitives = adt.only(Number, String, Boolean);
+
+onlyNumbers(12) === 12;
+onlyStrings('Foo') === 'Foo';
+onlyPrimitives(/^$/); // TypeError!
+```
+
+Constraints are just functions that take a value and return another or throw an
+exception.
+
+```js
+function toString (x) { 
+  return x.toString();
+};
+
+var OnlyStrings = adt.newtype({
+  value: toString
+});
+
+OnlyStrings(12).value === '12';
+```
+
+Sealing Your ADT
+----------------
+
+All ADTs are left "open" by default, meaning you can add types and fields to it
+at a later time. You can close your ADT by calling `seal`.
+
+```js
+var Maybe = adt.data();
+var Nothing = Maybe.type('Nothing');
+var Just = Maybe.type('Just', { value: adt.any });
+
+// Close it.
+Maybe.seal();
+
+// Calling `type` results in an error
+Maybe.type('Foo'); // Error!
+```
+
+Object Literal Insertion Order
+------------------------------
+
+Astute readers might notice that adt.js relies on a controversial feature: the 
+host engine maintaining insertion order of keys in object literals. It's true
+that the Javascript spec does not require this feature. However, it has become
+a defacto standard, and all engines implement this feature for the string keys
+we are using.
+
+adt.js also offers a "safe" API that does not rely on this feature:
+
+```js
+var List = adt.data(function (type, List) {
+  type('Nil', null);
+  type('Cons', function (field) {
+    field('head', adt.any);
+    field('tail', adt.only(List));
+  });
+});
+```
+
+In fact, this is just the desugared form of the terse API.
+
+Deep Equality
+-------------
+
+adt.js only performs deep equality on adt.js types. It does not perform deep
+equality on native arrays or objects. Anything that is not an adt.js type is
+compared using strict equality (`===`).
+
+```js
+var arr = [1, 2, 3];
+var just1 = Just(arr);
+var just2 = Just(arr);
+
+just1.equals(just2) === true;
+just1.equals(Just([1, 2, 3])) === false;
+```
+
+Immutability
+------------
+
+Javascript is inherently mutable, and so adt.js can't guarantee immutablity,
+only facilitate it. By using `set` instead of direct attribute assignment, we
+get safe, immutable structures. But if we were to store say an object literal
+as a value, we could certainly get a reference to it and mutate it, affecting
+any data that might be sharing it.
+
+```js
+var obj = { foo: 'bar' };
+var just1 = Just(obj);
+var just2 = Just(obj);
+
+// Bad!
+just1.value.foo = 'baz';
+just2.value.foo === 'baz';
+```
+
+Cloning
+-------
+
+adt.js types all have a `clone` method for returning a safe copy of a data
+structure. As with deep equality, it only clones adt.js types and copies arrays
+and objects by reference. Singleton instances will always return the same
+instance when copied.
+
+```js
+var just1 = Just(42);
+var just2 = just.clone();
+
+just2.value === 42;
+just1 !== just2;
+```
+
+Overriding `apply`
+------------------
+
+For some types, it can be nice to have some sugar on the parent type. For
+example, it would be nice if you could build a `List` like you would an
+`Array`:
+
+```js
+var arr = Array(1, 2, 3);
+
+// Wouldn't this be nice?
+var list = List(1, 2, 3);
+list.toString() === 'Cons(1, Cons(2, Cons(3, Nil)))';
+```
+
+adt.js detects when you override your `apply` method and can use that to
+create your types.
+
+```js
+List.apply = function (ctx, args) {
+  // Hypothetical `fromArray` function
+  return List.fromArray(args);
+};
 ```
 
 Pattern Matching
 ----------------
 
-Data types made with adt.js have builtin support for matches.js, a powerful
-pattern matching library for Javascript.
+Data types made with adt.js have builtin support for matches.js, a pattern
+matching library for Javascript:
 
 ```js
-var pattern = require("matches").pattern;
-var adt = require("adt");
-
-var Tree  = adt.data();
-var Empty = Tree.type('Empty');
-var Node  = Tree.type('Node', {
-  val   : adt.any,
-  left  : adt.only(Tree),
-  right : adt.only(Tree)
+var Tree = adt.data(function () {
+  return {
+    Empty: null,
+    Node: {
+      value : adt.any,
+      left  : adt.only(this),
+      right : adt.only(this)
+    }
+  };
 });
 
+var pattern = require('matches').pattern;
 var treefn = pattern({
   'Empty': function () { ... },
   'Node(42, ...)': function () { ... },
-  'Node{left: Node(12, ...)}': function () { ... }
+  'Node{left: Node(12, ...){}': function () { ... }
 });
 ```
 
 Find out more about matches.js: https://github.com/natefaubion/matches.js
 
-Usage
------
+API Variety
+-----------
 
-### adt.data()
+adt.js has a versatile API, so you can define your types in a way that suits
+you. Some ways are very terse, while others are "safer" (don't rely on object
+insert order).
 
-Returns a parent type which you can use to create new data types.
-
-```js
-var Maybe = adt.data();
-```
-
-You can create new data types by passing an object:
+If you don't like defining recursive types within a function, you might like:
 
 ```js
-var Maybe = adt.data({
-  Nothing : adt.single(),
-  Just    : adt.record('val')
+var List = adt.data();
+var Nil  = List.type('Nil');
+var Cons = List.type('Cons', {
+  head: adt.any,
+  tail: adt.only(List)
 });
 ```
 
-Or you can use a callback to configure the data types. The callback is passed
-two arguments: the parent type, and the `type` function. The `this` context is
-also set to be the parent type.
+This has the advantage of shaving off a few lines but requires name
+duplication for `toString` and pattern matching to work.
+
+Another way of defining "safe" types is to use chaining instead of a closure:
 
 ```js
-// Configure using the type function
-var List = adt.data(function (List, type) {
-  type('Empty');
-  type('Cons', {
-    head: adt.any,
-    tail: adt.only(List);
-  });
-});
-
-// Configure by returning a template
-var List = adt.data(function (List) {
-  return {
-    Empty: null,
-    Cons: {
-      head: adt.any,
-      tail: adt.only(List)
-    } 
-  };
-});
+var List = adt.data();
+var Nil  = List.type('Nil');
+var Cons = List.type('Cons')
+             .field('head', adt.any)
+             .field('tail', adt.only(List));
 ```
 
-#### type()
-
-Creates and returns a new data type as a subtype of the parent. `type` can be
-called with no arguments, but you should almost always provide a string name
-as the first argument so that the proper type-checking and toString functions
-can be generated.
-
-```js
-var Maybe = adt.data();
-
-// Creates a new adt.single type
-var Nothing = Maybe.type('Nothing')
-
-// Or you can explicitly pass in a generated type
-var Nothing = Maybe.type('Nothing', adt.single());
-```
-
-If the second argument to `type` is an object or callback, an `adt.record`
-type will be created.
-
-```js
-// Create an adt.record type using a template
-var Just = Maybe.type('Just', { val: adt.any });
-```
-
-#### seal()
-
-Removes the ability to add new data types. You can call this if you don't want 
-anyone else further extending the family. This will also call `seal` on any
-child types.
-
-```js
-Maybe.seal();
-
-// Throws an error
-Maybe.type( ... );
-```
-
-#### apply()
-
-Adt.js recognizes when you've overridden the `apply` method of your parent type
-and will call it when you invoke the parent constructor.
-
-```js
-var List = adt.data(function () {
-  this.apply = function (ctx, args) {
-    return this.fromArray(args);
-  };
-  this.fromArray = function (arr) {
-    // Build a list from an array
-  };
-});
-```
-
-Now we can just call `List` to build our linked list.
-
-```js
-var list = List(1, 2, 3);
-list.toString() === "Cons(1, Cons(2, Cons(3, Empty)))"
-```
-
----
-
-### adt.single()
-
-Returns a constructor factory function for singleton types. The subsequent
-function takes a parent and name as arguments and returns an instance of the
-new type.
-
-```js
-// A new singleton type that inherits from the adt base class.
-var fooFactory = adt.single();
-var Foo = fooFactory(adt.__Base__, 'Foo');
-```
-
----
-
-### adt.record()
-
-Returns a type factory for types that can hold other types using named fields. 
-Fields can have constraints to only allow certain types or to coerce one type 
-to another.
-
-You can create a record by passing in field names. These fields will allow
-any type.
-
-```js
-var fooFactory = adt.record('bar', 'baz');
-var Foo = fooFactory(adt.__Base__, 'Foo');
-
-var foo = Foo(42, null);
-foo.bar === 42;
-foo.baz === null;
-```
-
-You can also pass in an object:
-
-```js
-var fooFactory = adt.record({
-  // Allow any value
-  bar: adt.any,
-  // Allow only strings
-  baz: adt.only(String),
-  // Try to coerce a value to an integer
-  bin: parseInt
-});
-var Foo = fooFactory(adt.__Base__, 'Foo');
-
-var foo = Foo(42, "foo", "12");
-foo.bar === 42;
-foo.baz === "foo";
-foo.bin === 12;
-```
-
-You can use chaining:
-
-```js
-var fooFactory = adt.record()
-var Foo = fooFactory(adt.__Base__, 'Foo')
-  .field('bar')
-  .field('baz', adt.only(String))
-```
-
-Finally, you can use a callback. The callback is passed two arguments, the
-record type, and the `field` function. The `this` context is set to the record
-type.
-
-```js
-// Configure using the `field` function
-var fooFactory = adt.record(function (Foo, field) {
-  field('bar');
-  field('baz', adt.only(String));
-});
-
-// Configure by returning a template
-var fooFactory = adt.record(function () {
-  return {
-    bar: adt.any,
-    baz: adt.only(String)
-  };
-});
-```
-
-Note: You should never need to invoke the factory youself. It should always
-be passed to `adt.data`.
-
-#### field(name, constraint)
-
-Adds a new field to the type given a name and a constraint. If no constraint
-is provided, `adt.any` will be used.
-
-```js
-var Foo = adt.record().field('val', adt.only(String));
-```
-
-#### seal()
-
-Removes the ability to add new fields to the type.
-
-```js
-var Foo = adt.record('foo', 'bar').seal();
-
-// Throws an error
-Foo.field('bin')
-```
-
-#### create(obj)
-
-Creates a new instance using key-value pairs instead of positional arguments.
-
-```js
-var foo = Foo.create({ bar: 42, baz: 'baz' });
-```
-
-#### record.set(obj)
-
-Returns a new instance with fields changed.
-
-```js
-var foo = Foo(42, 'baz');
-var foo2 = foo.set({ bar: 12 });
-foo2.bar === 12;
-foo2 !== foo;
-```
-
-**Note:** `set` should almost always be used instead of attribute mutation.
-Just setting attributes using assignment bypasses any constraints on the field
-and can cause unexpected results.
-
-#### record.clone()
-
-Recursively clones all values that are adt types. Native Javascript arrays and
-objects are not cloned but copied by reference.
-
-#### record.get(index)
-
-Returns the value at the given index or field name. Raises an error if the
-index is out of range.
-
-```js
-var foo = Foo(42, 'baz');
-foo.get(1) === 'baz';
-foo.get('foo') === 42;
-```
-
-#### record.equals(that)
-
-Performs a deep equality check on all adt values. Other values will be compared
-using strict equality.
-
-```js
-// Two separate instances
-var foo1 = Foo(Foo(42, 'bin'), 'baz');
-var foo2 = Foo(Foo(42, 'bin'), 'baz');
-foo1.equals(foo2) === true;
-
-// Does not recursively compare objects and arrays
-var foo3 = Foo({ a: 1 }, 'baz');
-var foo4 = Foo({ a: 1 }, 'baz');
-foo1.equals(foo2) === false;
-```
-
----
-
-### adt.enumeration()
-
-Generates a family of types that can be compared using `lt`, `gt`, `lte`, `gte`,
-`eq`, and `neq`.
-
-```js
-var Days = adt.enumeration('Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun');
-var fri = Days.Fri;
-var wed = Days.Wed;
-wed.lt(fri) === true;
-fri.gt(wed) === true;
-fri.eq(foo); // Throws a TypeError
-```
-
-It also be used just like `adt.data`.
-
-```js
-var Days = adt.enumeration();
-var Mon = Days.type('Mon');
-var Tue = Days.type('Tue');
-// etc...
-
-// Or with a callback
-var Days = adt.enumeration(function (Days, type) {
-  type('Mon');
-  type('Tue');
-  // etc...
-});
-```
-
----
-
-### adt.newtype()
-
-Creates a type that does not belong to a specific family. It's like calling
-`adt.data` and only adding one type to it.
-
-```js
-var Foo = adt.newtype('Foo', { bar: adt.any, baz: adt.any });
-```
-
----
-
-### Constraints
-
-Constraints are functions that either raise an error for an invalid type or
-coerce the type to another.
-
-#### adt.any
-
-Returns whatever value is passed to it (ie. no constraint).
-
-#### adt.only(types...)
-
-Returns a constraint function that only allows the specified types or values.
-
-```js
-var strings = adt.only(String);
-strings('foo') === 'foo';
-strings(42); // Throws a TypeError
-
-var numOrNull = adt.only(Number, null);
-numOrNull(42) === 42;
-numOrNull(null) === null;
-numOrNull('foo'); // Throws a TypeError
-```
-
-#### Custom Constraints
-
-Any function that takes a single value and returns another can be used as a
-constraint. For example, `parseInt` can be a constraint that attempts to
-coerce a value to an integer.
-
-```js
-function toString (x) { return x.toString() };
-
-var Foo = adt.record({ bar: toString });
-var foo = Foo(12);
-foo.bar === '12';
-```
+Depending on you needs, there should hopefully be an easy, terse way of
+defining your types.

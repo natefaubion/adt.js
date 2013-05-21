@@ -9,28 +9,13 @@
 ;(function (adt) {
   'use strict';
 
-  // Cache some prototype methods for easy use.
-  var slice = Array.prototype.slice;
-  var funcApply = Function.prototype.apply;
-
   // Utility functions
   adt.util = {};
 
   // Return an array of the supplied argument. Used for `arguments` objects.
-  adt.util.toArray = function (a) {
-    var dest = [], i = 0, len = a.length;
-    for (; i < len; i++) dest[i] = a[i];
-    return dest;
-  };
-
-  // A basic extend method for copying attributes of on object into another.
-  adt.util.extend = function (dest /*, sources... */) {
-    var args = slice.call(arguments, 1);
-    for (var i = 0, len = args.length; i < len; i++) {
-      for (var k in args[i]) {
-        if (args[i].hasOwnProperty(k)) dest[k] = args[i][k];
-      }
-    }
+  adt.util.toArray = function (a, start) {
+    var dest = [], i = start || 0, len = a.length;
+    for (; i < len; i++) dest.push(a[i]);
     return dest;
   };
 
@@ -47,7 +32,7 @@
   // Partially applies arguments to a function in the same way `bind` would,
   // but doesn't cement the context in anyway.
   adt.util.partial = function (func) {
-    var args = slice.call(arguments, 1);
+    var args = adt.util.toArray(arguments, 1);
     return function () {
       return func.apply(this, args.concat(adt.util.toArray(arguments)));
     };
@@ -130,7 +115,7 @@
     // but it won't be of much use. You can however override the apply method
     // to create default instances.
     var D = adt.util.inherit(adt.__Base__, function () {
-      if (!(this instanceof D) && D.apply !== funcApply) {
+      if (!(this instanceof D) && D.apply !== Function.prototype.apply) {
         return D.apply(this, arguments);
       }
     });

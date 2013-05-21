@@ -443,3 +443,11 @@ var Cons = List.type('Cons', {})
 
 Depending on you needs, there should hopefully be an easy, terse way of
 defining your types.
+
+---
+
+### Author
+Nathan Faubion (@natefaubion)
+
+### License
+MIT

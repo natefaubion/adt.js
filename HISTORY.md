@@ -1,3 +1,12 @@
+## 0.6.0
+
+* BREAKING: swapped the type/constructor paramaters in the callbacks to
+`data` and `type`.
+* Added `toJSON` implementations
+* Added hooks for extending the deep clone/equality behavior for native
+JS types.
+* Rewritten docs
+
 ## 0.5.0
 
 * `single` and `record` now act as factory factories so that we can call the

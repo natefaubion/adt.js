@@ -435,7 +435,7 @@ Another way of defining "safe" types is to use chaining instead of a closure:
 ```js
 var List = adt.data();
 var Nil  = List.type('Nil');
-var Cons = List.type('Cons')
+var Cons = List.type('Cons', {})
              .field('head', adt.any)
              .field('tail', adt.only(List));
 ```

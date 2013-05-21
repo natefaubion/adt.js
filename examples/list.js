@@ -6,15 +6,16 @@ var List = adt.data(function () {
   };
 });
 
-var Empty = List.type('Empty');
-var Cons  = List.type('Cons', { head: adt.any, tail: adt.only(List) });
+var Nil  = List.type('Nil');
+var Cons = List.type('Cons', { 
+  head: adt.any, 
+  tail: adt.only(List) 
+});
 
 // Create a list from an array
 List.fromArray = function (arr) {
-  var i = arr.length, l = Empty;
-  while (i--) {
-    l = Cons(arr[i], l);
-  }
+  var i = arr.length, l = Nil;
+  while (i--) l = Cons(arr[i], l);
   return l;
 };
 
@@ -45,33 +46,33 @@ List.prototype.length = function () {
 
 // Concat two lists together
 List.prototype.concat = function (list) {
-  return this.isEmpty ? list : Cons(this.head, this.tail.concat(list));
+  return this.isNil ? list : Cons(this.head, this.tail.concat(list));
 };
 
 // Flatten a level
 List.prototype.flatten = function () {
   return this.reduce(function (memo, list) {
     return memo.concat(list);
-  }, Empty);
+  }, Nil);
 };
 
 // Make it a functor
 List.prototype.map = function (fn) {
-  return this.isEmpty ? this : Cons(fn(this.head), this.tail.map(fn));
+  return this.isNil ? this : Cons(fn(this.head), this.tail.map(fn));
 };
 
 // Make it a monad
 List.prototype.chain = function (fn) {
-  return this.isEmpty ? this : this.map(fn).flatten();
+  return this.isNil ? this : this.map(fn).flatten();
 };
 
 List.of = function (val) {
-  return Cons(val, Empty);
+  return Cons(val, Nil);
 };
 
 // Make it an applicative
 List.prototype.ap = function (val) {
-  return this.isEmpty ? this : this.chain(function (fn) {
+  return this.isNil ? this : this.chain(function (fn) {
     return val.map(fn);
   });
 };

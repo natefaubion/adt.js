@@ -28,7 +28,7 @@ suite('Examples', function () {
 
   suite('List', function () {
     var List = require('../examples/list');
-    var list = List.Cons(1, List.Cons(2, List.Cons(3, List.Empty)));
+    var list = List.Cons(1, List.Cons(2, List.Cons(3, List.Nil)));
     var fadd = function (a, x) { return a + x };
     var mtwo = function (x) { return x * 2 };
 

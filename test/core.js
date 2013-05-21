@@ -36,7 +36,7 @@ suite('Core', function () {
 
   suite('adt.record(callback)', function () {
     var inner;
-    var Foo = adt.record(function (foo, field) {
+    var Foo = adt.record(function (field, foo) {
       inner = foo;
       ok('Class passed to callback', foo === this);
       ok('`field` passed to callback', field === this.field);
@@ -127,7 +127,7 @@ suite('Core', function () {
 
   suite('adt.data(callback)', function () {
     var inner;
-    var Foo = adt.data(function (foo, type) {
+    var Foo = adt.data(function (type, foo) {
       inner = foo;
       ok('Class passed to callback', foo === this);
       ok('`type` passed to callback', type === this.type);

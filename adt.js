@@ -104,7 +104,7 @@
     // adt.data(typeNames...)
     if (targ0 === 'string') {
       var args = arguments;
-      return adt.data(function (r, type) {
+      return adt.data(function (type) {
         var i = 0, len = args.length;
         for (; i < len; i++) type(args[i]);
       });
@@ -114,8 +114,10 @@
     if (targ0 === 'object') {
       types = arguments[0];
       // Call adt.data again with a desugared callback.
-      return adt.data(function (d, type) {
-        for (var name in types) type(name, types[name]);
+      return adt.data(function (type) {
+        for (var name in types) {
+          if (types.hasOwnProperty(name)) type(name, types[name]);
+        }
       });
     }
 
@@ -155,7 +157,7 @@
     };
 
     // Call the callback with the constructor as the context.
-    var types = callback.call(D, D, D.type);
+    var types = callback.call(D, D.type, D);
 
     // If an object was returned in the callback, assume it's a mapping of
     // more types to add.
@@ -210,7 +212,7 @@
     // adt.record(fieldNames...)
     if (targ0 === 'string') {
       var args = arguments;
-      return adt.record(function (r, field) {
+      return adt.record(function (field) {
         var i = 0, len = args.length;
         for (; i < len; i++) field(args[i], adt.any);
       });
@@ -219,8 +221,10 @@
     // adt.record(fieldsObj)
     else if (targ0 === 'object') {
       fields = arguments[0];
-      return adt.record(function (r, field) {
-        for (var name in fields) field(name, fields[name]);
+      return adt.record(function (field) {
+        for (var name in fields) {
+          if (fields.hasOwnProperty(name)) field(name, fields[name]);
+        }
       });
     }
 
@@ -357,7 +361,7 @@
       };
 
       // Call the callback with the contructor as the context.
-      fields = callback.call(ctr, ctr, ctr.field);
+      fields = callback.call(ctr, ctr.field, ctr);
 
       // If an object was returned in the callback, assume it's a mapping of
       // more fields to add.

@@ -13,7 +13,7 @@ adt.js gives you the following for free:
 * Deep equality and cloning
 * Curried constructors
 * `toString` and `toJSON` implementations
-* Enumerations
+* Enums
 
 Install
 -------
@@ -142,16 +142,17 @@ var list3 = consPartial(List.Nil);
 List.Cons(42, 12) // TypeError!
 ```
 
-Enumerations
-------------
+Enums
+-----
 
-Let's define a simple days-of-the-week enum:
+Let's define a simple days-of-the-week enum using `adt.enumeration` or its
+alias `adt.enum`:
 
 ```js
-var Days = adt.enumeration('Sun', 'Mon', 'Tues', 'Wed', 'Thur', 'Fri', 'Sat');
+var Days = adt.enum('Sun', 'Mon', 'Tues', 'Wed', 'Thur', 'Fri', 'Sat');
 ```
 
-Enumerations can be compared using `lt`, `lte`, `eq`, `gte`, and `gt`.
+Enums can be compared using `lt`, `lte`, `eq`, `gte`, and `gt`.
 
 ```js
 var day1 = Days.Tues;
@@ -162,10 +163,10 @@ day2.gt(day1) === true;
 day1.eq(Days.Mon) === false;
 ```
 
-Enumerations can also have constant values for JSON serialization:
+Enums can also have constant values for JSON serialization:
 
 ```js
-var Days2 = adt.enumeration({
+var Days2 = adt.enum({
   Sun  : 1,
   Mon  : 2,
   Tues : 3,
@@ -185,7 +186,7 @@ Days2.Mon.toJSON() === 2;
 Note that the value you give it does not affect the comparison methods. That
 is determined solely by insertion order.
 
-Enumerations aren't really special. They are just normal ADTs with some extra
+Enums aren't really special. They are just normal ADTs with some extra
 behavior. You are not restricted to only using singleton types like we did
 above. You could just as easily have an enum of record types too. Likewise, you
 can also give a value to any singleton type. `null` is just the default value

@@ -458,6 +458,9 @@
     return E;
   };
 
+  // Alias `enumeration`
+  adt['enum'] = adt.enumeration;
+
   // Creates a singleton type that belongs to its own family.
   adt.newtype = function () {
     var args = adt.util.toArray(arguments);

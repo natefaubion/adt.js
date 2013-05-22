@@ -15,14 +15,14 @@ suite('Examples', function () {
     var just = Maybe.Just(42);
     var noth = Maybe.Nothing;
 
-    ok('Just.map', just.map(times2).val === 84);
+    ok('Just.map', just.map(times2).value === 84);
     ok('Nothing.map', noth.map(times2) === Maybe.Nothing);
     ok('Maybe.of', Maybe.of(42).equals(just));
 
     function one (x) { return Maybe.Just(x + 1); }
     function two (x) { return Maybe.Just(x + 2); }
     function not (x) { return Maybe.Nothing; }
-    ok('Bind with all Justs', just.chain(one).chain(two).val === 45);
+    ok('Bind with all Justs', just.chain(one).chain(two).value === 45);
     ok('Bind with a Nothing in the middle', just.chain(one).chain(not).chain(two) === Maybe.Nothing);
   });
 
@@ -45,5 +45,21 @@ suite('Examples', function () {
     ok('List.of', List.of(42).equals(List(42)));
     ok('List bind', list.chain(function (x) { return List(x, x) })
            .equals(List(1, 1, 2, 2, 3, 3)));
+  });
+
+  suite('Either', function () {
+    var Either = require('../examples/either');
+    var right = Either.Right(42);
+    var left = Either.Left('error');
+
+    ok('Right.map', right.map(times2).value === 84);
+    ok('Left.map', left.map(times2).equals(left));
+    ok('Either.of', Either.of(42).equals(right));
+
+    function one (x) { return Either.Right(x + 1); }
+    function two (x) { return Either.Right(x + 2); }
+    function not (x) { return Either.Left('error'); }
+    ok('Bind with all Rights', right.chain(one).chain(two).value === 45);
+    ok('Bind with a Left in the middle', right.chain(one).chain(not).chain(two).equals(left));
   });
 });

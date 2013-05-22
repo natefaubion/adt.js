@@ -1,3 +1,7 @@
+## 0.6.1
+* Removed unused utility function and cruft cleanup
+* Added `Either` example
+
 ## 0.6.0
 
 * BREAKING: swapped the type/constructor paramaters in the callbacks to

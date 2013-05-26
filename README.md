@@ -281,10 +281,10 @@ adt.js also offers a "safe" API that does not rely on this feature:
 ```js
 var List = adt.data(function (type, List) {
   type('Nil', null);
-  type('Cons', function (field) {
+  type('Cons', adt.record(function (field) {
     field('head', adt.any);
     field('tail', adt.only(List));
-  });
+  }));
 });
 ```
 

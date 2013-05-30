@@ -106,6 +106,55 @@
     return D;
   };
 
+  // Paramaterized Type Generation
+  // -----------------------------
+  
+  var __cache = {};
+
+  adt.construct = function (callback) {
+    var typeLen = callback.length;
+    var typeCtr = function () {
+      var args = toArray(arguments);
+      if (args.length !== typeLen) {
+        throw new Error('Incorrect number of type paramaters, expecting ' + typeLen + '.');
+      }
+      return typeFactory(toArray(arguments));
+    }
+
+    inherit(adt.__Base__, typeCtr);
+
+    var dataHash = adtHash([typeCtr]);
+    __cache[dataHash] = {};
+
+    var typeFactory = function (args) {
+      var hash = adtHash(args);
+      var cached = __cache[dataHash][hash];
+      if (cached) return cached;
+
+      // Monkey-patch adt.__Base__ as `data` doesn't currently have a way to
+      // pass in a parent type. Booo-urns.
+      var base = adt.__Base__;
+      adt.__Base__ = typeCtr;
+
+      var D = adt.data();
+      __cache[dataHash][hash] = D;
+
+      // Restore adt.__Base__.
+      adt.__Base__ = base;
+
+      var tmpl = callback.apply(D, args);
+      for (var t in tmpl) {
+        if (tmpl.hasOwnProperty(t)) {
+          D.type(t, tmpl[t]);
+        }
+      }
+
+      return D;
+    };
+
+    return typeCtr;
+  };
+
   // Singleton Class Generation
   // --------------------------
 
@@ -505,6 +554,23 @@
     var i = 0, len = types.length;
     for (; i < len; i++) if (checkType(types[i], x)) return true;
     return false;
+  }
+
+  function defineProp (obj, name, desc) {
+    if (Object.defineProperty) {
+      Object.defineProperty(obj, name, desc);
+    } else {
+      obj[name] = desc.value;
+    }
+  }
+
+  function adtHash (types) {
+    var i = 0, arg, comp = [];
+    for (; arg = types[i]; i++) {
+      if (!arg.__adtHash__) defineProp(arg, '__adtHash__', { value: uniqueId('adt')});
+      comp.push(arg.__adtHash__);
+    }
+    return comp.join(',');
   }
 
   function toJSONValue (x) {

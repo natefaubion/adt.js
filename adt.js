@@ -106,53 +106,69 @@
     return D;
   };
 
-  // Paramaterized Type Generation
+  // Parameterized Type Generation
   // -----------------------------
   
-  var __cache = {};
+  // Parameterized types need to be cached so we can have recursive definitions
+  // and so we don't have to regenerate them everytime. In order to do so, we
+  // have to create a hash of the type parameters. We use `adtHash` to tag the
+  // parameters with a unique value, and then concat all the hashes.
+  var cache = {};
 
+  // `construct` only takes a callback, unlike `data`. We use the function's
+  // `length` to determine how many type parameters to expect.
   adt.construct = function (callback) {
-    var typeLen = callback.length;
-    var typeCtr = function () {
+    // Create the type constructor. All generated types will inherit from this
+    // so we can define generic functions on its prototype.
+    var T = inherit(adt.__Base__, function () {
       var args = toArray(arguments);
-      if (args.length !== typeLen) {
-        throw new Error('Incorrect number of type paramaters, expecting ' + typeLen + '.');
+      if (args.length !== callback.length) {
+        throw new Error(
+          'Incorrect number of type parameters. ' +
+          'Expected ' + callback.length + ', ' +
+          'got ' + args.length + '.'
+        );
       }
-      return typeFactory(toArray(arguments));
-    }
 
-    inherit(adt.__Base__, typeCtr);
-
-    var dataHash = adtHash([typeCtr]);
-    __cache[dataHash] = {};
-
-    var typeFactory = function (args) {
-      var hash = adtHash(args);
-      var cached = __cache[dataHash][hash];
+      // Calculate the type hash and return the cached constructor is it exists.
+      var hash = adtHash([T].concat(args));
+      var cached = cache[hash];
       if (cached) return cached;
 
       // Monkey-patch adt.__Base__ as `data` doesn't currently have a way to
-      // pass in a parent type. Booo-urns.
-      var base = adt.__Base__;
-      adt.__Base__ = typeCtr;
+      // override its parent type. It's harmless since no user code is executed
+      // while it's swapped out, but it sure is ugly.
+      // TODO: Figure out a better way.
+      var Base = adt.__Base__;
+      adt.__Base__ = T;
 
-      var D = adt.data();
-      __cache[dataHash][hash] = D;
+      // Create the new type and cache it. It's important to cache it before we
+      // invoke the callback, otherwise we will get a stack overflow when
+      // defining recursive types.
+      var D = cache[hash] = adt.data();
 
-      // Restore adt.__Base__.
-      adt.__Base__ = base;
+      // Restore adt.__Base__
+      adt.__Base__ = Base;
 
-      var tmpl = callback.apply(D, args);
-      for (var t in tmpl) {
-        if (tmpl.hasOwnProperty(t)) {
-          D.type(t, tmpl[t]);
+      // Invoke the callback with the type parameters. We can't pass in
+      // references to `type` and the constructor, but the callback can invoke
+      // them using `this`.
+      var types = callback.apply(D, args);
+
+      // If an object was returned in the callback, assume it's a mapping of
+      // more types to add.
+      if (typeof types === 'object' && !(types instanceof adt.__Base__)) {
+        for (var name in types) {
+          if (types.hasOwnProperty(name)) D.type(name, types[name]);
         }
       }
 
-      return D;
-    };
+      // Go ahead and seal it, because only bad things can come from trying to
+      // add types later on.
+      return D.seal();
+    });
 
-    return typeCtr;
+    return T;
   };
 
   // Singleton Class Generation

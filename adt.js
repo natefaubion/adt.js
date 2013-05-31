@@ -179,14 +179,18 @@
       var args = arguments;
       var len = names.length;
       if (this instanceof ctr) {
-        if (args.length < len) throw new Error('Too few arguments');
-        if (args.length > len) throw new Error('Too many arguments');
+        if (args.length !== len) {
+          throw new Error(
+            'Unexpected number of arguments for ' + ctr.className + ': ' +
+            'got ' + args.length + ', but need ' + len + '.'
+          );
+        }
         var i = 0, n;
         for (; n = names[i]; i++) this[n] = constraints[n](args[i]);
       } else {
         return args.length < len
-        ? partial(ctr, toArray(args))
-        : ctrApply(ctr, args);
+          ? partial(ctr, toArray(args))
+          : ctrApply(ctr, args);
       }
     };
 

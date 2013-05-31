@@ -55,7 +55,7 @@
     D.type = function (name, tmpl) {
       if (typeof name !== 'string') {
         tmpl = name;
-        name = adt.util.uniqueId('Anonymous');
+        name = uniqueId('Anonymous');
       }
       
       // Create a new template if not provided with one

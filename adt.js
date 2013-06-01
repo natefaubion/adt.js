@@ -186,7 +186,9 @@
           );
         }
         var i = 0, n;
-        for (; n = names[i]; i++) this[n] = constraints[n](args[i]);
+        for (; n = names[i]; i++) {
+          this[n] = constraints[n](args[i], n, ctr);
+        }
       } else {
         return args.length < len
           ? partial(ctr, toArray(args))
@@ -316,7 +318,9 @@
       var i = 0, len = names.length, n;
       for (; i < len; i++) {
         n = names[i];
-        if (!(n in vals)) throw new Error('Could not find field in arguments: ' + n);
+        if (!(n in vals)) {
+          throw new Error('Missing `' + n + '` in arguments to ' + this.className);
+        }
         args[i] = vals[n];
       }
       return this.apply(null, args);
@@ -433,9 +437,11 @@
   // to make sure it is of the correct type.
   adt.only = function () {
     var args = arguments;
-    return function (x) {
+    return function (x, field, ctr) {
       if (typeCheck(args, x)) return x;
-      throw new TypeError('Unexpected type');
+      var err = 'Unexpected type';
+      if (field && ctr) err += ' for `' + field + '` of ' + ctr.className;
+      throw new TypeError(err);
     };
   };
 

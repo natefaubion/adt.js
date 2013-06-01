@@ -515,4 +515,4 @@
 
   function noop () {}
 
-})(exports !== void 0 ? exports : (this.adt = {}));
+})(typeof exports !== 'undefined' ? exports : (this.adt = {}));

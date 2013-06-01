@@ -61,7 +61,11 @@
       // Create a new template if not provided with one
       var isSingle = typeCheck([String, Boolean, Number, Date, null, void 0], tmpl);
       if (isSingle) tmpl = adt.single(tmpl);
-      else if (typeof tmpl !== 'function') tmpl = adt.record(tmpl);
+      else if (typeof tmpl !== 'function') {
+        tmpl = typeCheck([Array], tmpl)
+          ? adt.record.apply(null, tmpl)
+          : adt.record(tmpl);
+      }
 
       // Add typechecking attributes for this type. Everything starts out as
       // false by default. Each individual class should overrides its own.

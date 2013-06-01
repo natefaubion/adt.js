@@ -459,7 +459,7 @@
     C.prototype = ctr.prototype;
     var inst = new C();
     var ret = ctr.apply(inst, args);
-    return Object(ret) === ret ? ret : inst;
+    return inst;
   }
 
   function inherit (sup, sub) {

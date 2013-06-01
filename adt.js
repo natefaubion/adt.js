@@ -276,9 +276,7 @@
       var i = 0, len = names.length;
       var vala, valb, n;
       for (; i < len; i++) {
-        n = names[i];
-        vala = this[n];
-        valb = that[n];
+        n = names[i], vala = this[n], valb = that[n];
         if (vala instanceof adt.__Base__) {
           if (!vala.equals(valb)) return false;
         } else if (!adt.nativeEquals(vala, valb)) return false;
@@ -305,7 +303,6 @@
       return this[field];
     },
 
-    // Creates a new instance with the specified values changed.
     set: function (vals) {
       var ctr = this.constructor;
       var names = ctr.__names__;
@@ -320,8 +317,7 @@
       var args = [];
       var names = this.__names__;
       var i = 0, len = names.length, n;
-      for (; i < len; i++) {
-        n = names[i];
+      for (; n = names[i]; i++) {
         if (!(n in vals)) {
           throw new Error('Missing `' + n + '` in arguments to ' + this.className);
         }
@@ -330,10 +326,10 @@
       return this.apply(null, args);
     },
 
-    unapply: function (inst) {
+    unapply: function (inst, fn) {
       var names = this.__names__;
       var vals = [], i = 0, n;
-      for (; n = names[i]; i++) vals[i] = inst[n];
+      for (; n = names[i]; i++) vals[i] = fn ? fn(inst[n], n) : inst[n];
       return vals;
     },
 

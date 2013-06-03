@@ -59,10 +59,10 @@
       }
       
       // Create a new template if not provided with one
-      var isSingle = typeCheck([String, Boolean, Number, Date, null, void 0], tmpl);
+      var isSingle = checkTypes([String, Boolean, Number, Date, null, void 0], tmpl);
       if (isSingle) tmpl = adt.single(tmpl);
       else if (typeof tmpl !== 'function') {
-        tmpl = typeCheck([Array], tmpl)
+        tmpl = checkType([Array], tmpl)
           ? adt.record.apply(null, tmpl)
           : adt.record(tmpl);
       }
@@ -438,7 +438,7 @@
   adt.only = function () {
     var args = arguments;
     return function (x, field, ctr) {
-      if (typeCheck(args, x)) return x;
+      if (checkTypes(args, x)) return x;
       var err = 'Unexpected type';
       if (field && ctr) err += ' for `' + field + '` of ' + ctr.className;
       throw new TypeError(err);
@@ -487,20 +487,22 @@
     return dest;
   };
 
-  function typeCheck (types, x) {
-    var i = 0, len = types.length, type;
-    for (; i < len; i++) {
-      type = types[i];
-      if (type instanceof Function) {
-        if (x instanceof type
-        || type === Number && typeof x === 'number'
-        || type === String && typeof x === 'string'
-        || type === Boolean && typeof x === 'boolean') return true;
-      } else {
-        if (type instanceof adt.__Base__ && type.equals(x)
-        || type === x) return true;
-      }
+  function checkType (type, x) {
+    if (type instanceof Function) {
+      if (x instanceof type
+      || type === Number  && typeof x === 'number'
+      || type === String  && typeof x === 'string'
+      || type === Boolean && typeof x === 'boolean') return true;
+    } else {
+      if (type instanceof adt.__Base__ && type.equals(x)
+      || type === x) return true;
     }
+    return false;
+  }
+
+  function checkTypes(types, x) {
+    var i = 0, len = types.length;
+    for (; i < len; i++) if (checkType(types[i], x)) return true;
     return false;
   }
 

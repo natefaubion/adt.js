@@ -118,15 +118,15 @@
   // `construct` only takes a callback, unlike `data`. We use the function's
   // `length` to determine how many type parameters to expect.
   adt.construct = function (callback) {
+    var cblen = callback.length;
     // Create the type constructor. All generated types will inherit from this
     // so we can define generic functions on its prototype.
     var T = inherit(adt.__Base__, function () {
       var args = toArray(arguments);
-      if (args.length !== callback.length) {
+      if (args.length !== cblen) {
         throw new Error(
-          'Incorrect number of type parameters. ' +
-          'Expected ' + callback.length + ', ' +
-          'got ' + args.length + '.'
+          'Unexpected number of type parameters: ' +
+          'got ' + args.length + ', but need ' + cblen
         );
       }
 

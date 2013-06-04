@@ -9,11 +9,11 @@
 ;(function (adt) {
   'use strict';
 
-  // ADT Class Generation
-  // --------------------
-
   // Base class from which all adt.js classes inherit.
   adt.__Base__ = function () {};
+
+  // ADT Class Generation
+  // --------------------
 
   adt.data = function () {
     var targ0 = typeof arguments[0];
@@ -49,6 +49,7 @@
       if (!(this instanceof D) && D.apply !== Function.prototype.apply) {
         return D.apply(this, arguments);
       }
+      throw new Error('Bad invocation');
     });
 
     // Adds a new type to the ADT.

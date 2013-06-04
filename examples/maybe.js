@@ -14,9 +14,7 @@ Maybe.prototype.chain = function (fn) {
   return this.isNothing ? this : fn(this.value);
 };
 
-Maybe.of = function (value) {
-  return Just(value);
-};
+Maybe.of = Just;
 
 // Make it an applicative.
 Maybe.prototype.ap = function (arg) {

@@ -14,6 +14,7 @@ adt.js gives you the following for free:
 * Curried constructors
 * `toString` and `toJSON` implementations
 * Enums
+* [Sweet.js](https://github.com/mozilla/sweet.js) macros
 
 Install
 -------
@@ -41,6 +42,16 @@ Maybe = data
   Nothing : null
   Just :
     value : any
+```
+
+**Macros:**
+``` js
+data Maybe {
+  Nothing,
+  Just {
+    value: *
+  }
+}
 ```
 `adt.any` is a value constraint that will allow anything. If you wanted to
 restrict the type, you could use `adt.only`.
@@ -107,6 +118,17 @@ List = data ->
     tail : only this
 ```
 
+**Macros:**
+```js
+data List {
+  Nil,
+  Cons {
+    head: *,
+    tail: List
+  }
+}
+```
+
 Note that we've introduced a lambda to house our definition. With our `Maybe`
 type this wasn't necessary, because we didn't need to reference the ADT itself.
 But here, we want to use `adt.only` to put a constraint on the value of `tail`
@@ -148,8 +170,16 @@ Enums
 Let's define a simple days-of-the-week enum using `adt.enumeration` or its
 alias `adt.enum`:
 
+**JS:**
 ```js
 var Days = adt.enum('Sun', 'Mon', 'Tues', 'Wed', 'Thur', 'Fri', 'Sat');
+```
+
+**Macros:**
+```js
+enum Days {
+  Sun, Mon, Tues, Wed, Thur, Fri, Sat
+}
 ```
 
 Enums can be compared using `lt`, `lte`, `eq`, `gte`, and `gt`.
@@ -198,6 +228,7 @@ Newtypes
 Sometimes you just need a type that exists by itself. Use `adt.newtype` as
 a shortcut:
 
+**JS:**
 ```js
 // Instead of this:
 var Lonely = adt.data({
@@ -211,6 +242,13 @@ Lonely = Lonely.Lonely;
 var Lonely = adt.newtype('Lonely', {
   value: ady.any
 });
+```
+
+**Macros:**
+```js
+newtype Lonely {
+  value: *
+}
 ```
 
 Constraints

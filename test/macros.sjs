@@ -13,7 +13,7 @@ function throws (name, fn, type) {
 }
 
 suite('Macros', function () {
-  data List {
+  $data List {
     Nil,
     Cons {
       head: *,
@@ -21,11 +21,11 @@ suite('Macros', function () {
     }
   }
 
-  newtype Foo {
+  $newtype Foo {
     bar: *
   }
 
-  enum Day {
+  $enum Day {
     Sun, Mon, Tues, Wed, Thurs, Fri, Sat
   }
 
@@ -40,7 +40,7 @@ suite('Macros', function () {
     }
   };
 
-  data ConstraintTest {
+  $data ConstraintTest {
     ClassName {
       value: Day
     },

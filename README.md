@@ -46,7 +46,7 @@ Maybe = data
 
 **Macros:**
 ``` js
-data Maybe {
+$data Maybe {
   Nothing,
   Just {
     value: *
@@ -120,7 +120,7 @@ List = data ->
 
 **Macros:**
 ```js
-data List {
+$data List {
   Nil,
   Cons {
     head: *,
@@ -177,7 +177,7 @@ var Days = adt.enum('Sun', 'Mon', 'Tues', 'Wed', 'Thur', 'Fri', 'Sat');
 
 **Macros:**
 ```js
-enum Days {
+$enum Days {
   Sun, Mon, Tues, Wed, Thur, Fri, Sat
 }
 ```
@@ -195,6 +195,7 @@ day1.eq(Days.Mon) === false;
 
 Enums can also have constant values for JSON serialization:
 
+**JS:**
 ```js
 var Days2 = adt.enum({
   Sun  : 1,
@@ -211,6 +212,16 @@ Days.Mon.toJSON() === null;
 
 // But our new one serializes to an integer.
 Days2.Mon.toJSON() === 2;
+```
+
+**Macros:**
+```js
+$enum Days2 {
+  Sun = 1,
+  Mon = 2,
+  Tues = 3,
+  // ...etc
+}
 ```
 
 Note that the value you give it does not affect the comparison methods. That
@@ -246,7 +257,7 @@ var Lonely = adt.newtype('Lonely', {
 
 **Macros:**
 ```js
-newtype Lonely {
+$newtype Lonely {
   value: *
 }
 ```
@@ -481,6 +492,43 @@ var Cons = List.type('Cons', {})
 
 Depending on you needs, there should hopefully be an easy, terse way of
 defining your types.
+
+Using Macros
+------------
+
+To use macros, you will need to copy the macros file into your project, as
+sweet.js can't load macros from NPM modules.
+
+```
+$ cd /your/project/path
+$ mkdir macros
+$ curl https://raw.github.com/natefaubion/adt.js/master/macros/index.sjs > macros/adt.sjs
+$ sjs -m ./macros/adt.sjs your/file.js
+```
+
+In your file you don't need to `require('adt')`. The macro will load it for
+you when you define a data type.
+
+One nice property of the macros is that the data constructors are automatically
+brought into the surrounding scope:
+
+```js
+$data List {
+  Nil,
+  Cons {
+    head: *,
+    tail: List
+  }
+}
+
+// Nil and Cons are in scope.
+var list = Cons(42, Cons(12, Nil));
+```
+
+When declaring your constraints, the macros try to "do the right thing". If the
+identifier for the constraint starts with an upper-case letter, it will use an
+`adt.only` constraint. If it starts with a lower-case letter, it will use it
+as is. You can also inline a function literal as a constraint.
 
 ---
 

@@ -11,7 +11,7 @@ clean:
 	@rm -f adt.min.js
 
 test: test/macros.js
-	@$(SWEET) --module ./macros/index.sjs test/macros.sjs > test/macros.js
+	@$(SWEET) --module ./macros/index.js test/macros.sjs > test/macros.js
 	@$(MOCHA) --ui tdd
 
 .PHONY: clean test

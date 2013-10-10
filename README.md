@@ -454,7 +454,7 @@ function treeFn {
 }
 ```
 
-Find out more about matches.js: https://github.com/natefaubion/sparkler
+Find out more about sparkler: https://github.com/natefaubion/sparkler
 
 API Variety
 -----------

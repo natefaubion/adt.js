@@ -434,30 +434,27 @@ List.apply = function (ctx, args) {
 Pattern Matching
 ----------------
 
-Data types made with adt.js have builtin support for matches.js, a pattern
-matching library for Javascript:
+Data types made with adt.js have builtin support for sparkler, a pattern
+matching engine for JavaScript:
 
 ```js
-var Tree = adt.data(function () {
-  return {
-    Empty: null,
-    Node: {
-      value : adt.any,
-      left  : adt.only(this),
-      right : adt.only(this)
-    }
-  };
-});
+$data Tree {
+  Empty,
+  Node {
+    value: *,
+    left: Tree,
+    right: Tree
+  }
+}
 
-var pattern = require('matches').pattern;
-var treefn = pattern({
-  'Empty': function () { ... },
-  'Node(42, ...)': function () { ... },
-  'Node{left: Node(12, ...){}': function () { ... }
-});
+function treeFn {
+  case Empty => 'empty'
+  case Node(42, ...) => '42'
+  case Node{ left: Node(12, ...) } => 'left 12'
+}
 ```
 
-Find out more about matches.js: https://github.com/natefaubion/matches.js
+Find out more about matches.js: https://github.com/natefaubion/sparkler
 
 API Variety
 -----------

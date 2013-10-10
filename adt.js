@@ -2,7 +2,7 @@
 // ------
 // Algebraic data types and immutable structures in Javascript
 //
-// version : 0.6.2
+// version : 0.6.3
 // author  : Nathan Faubion <nathan@n-son.com>
 // license : MIT
 
@@ -143,6 +143,10 @@
     },
 
     equals: function (that) {
+      return this === that;
+    },
+
+    hasInstance: function(that) {
       return this === that;
     }
   };
@@ -327,18 +331,26 @@
       return this.apply(null, args);
     },
 
+    hasInstance: function (inst) {
+      return inst instanceof this;
+    },
+
     unapply: function (inst, fn) {
-      var names = this.__names__;
-      var vals = [], i = 0, n;
-      for (; n = names[i]; i++) vals[i] = fn ? fn(inst[n], n) : inst[n];
-      return vals;
+      if (this.hasInstance(inst)) {
+        var names = this.__names__;
+        var vals = [], i = 0, n;
+        for (; n = names[i]; i++) vals[i] = fn ? fn(inst[n], n) : inst[n];
+        return vals;
+      }
     },
 
     unapplyObj: function (inst, fn) {
-      var names = this.__names__;
-      var vals = {}, i = 0, n;
-      for (; n = names[i]; i++) vals[n] = fn ? fn(inst[n], n) : inst[n];
-      return vals;
+      if (this.hasInstance(inst)) {
+        var names = this.__names__;
+        var vals = {}, i = 0, n;
+        for (; n = names[i]; i++) vals[n] = fn ? fn(inst[n], n) : inst[n];
+        return vals;
+      }
     },
 
     seal: function () {

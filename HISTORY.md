@@ -1,3 +1,7 @@
+## 0.6.3
+
+* Updated for sparkler
+
 ## 0.6.2
 
 * MACROS!

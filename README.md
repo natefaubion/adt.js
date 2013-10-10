@@ -496,14 +496,10 @@ defining your types.
 Using Macros
 ------------
 
-To use macros, you will need to copy the macros file into your project, as
-sweet.js can't load macros from NPM modules.
-
 ```
-$ cd /your/project/path
-$ mkdir macros
-$ curl https://raw.github.com/natefaubion/adt.js/master/macros/index.sjs > macros/adt.sjs
-$ sjs -m ./macros/adt.sjs your/file.js
+npm install -g sweet.js
+npm install adt
+sjs -m adt/macros myfile.js
 ```
 
 In your file you don't need to `require('adt')`. The macro will load it for

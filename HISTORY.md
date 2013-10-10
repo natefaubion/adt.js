@@ -1,4 +1,10 @@
+## 0.6.2
+
+* MACROS!
+* Better sharing of methods.
+
 ## 0.6.1
+
 * Removed unused utility function and cruft cleanup
 * Added `Either` example
 

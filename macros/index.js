@@ -12,137 +12,161 @@ macro $adt__toString {
 }
 
 macro $adt__error {
-  case { _ $adt ( $tok ... ) } => {
-    var tok = #{ $tok ... };
-    var adt = #{ $adt };
-    if (tok.length) {
-      var adtStr = unwrapSyntax(adt[0]);
-      var tokStr = tok[0].token.type === parser.Token.Delimiter
-        ? unwrapSyntax(tok[0]).value[0]
-        : unwrapSyntax(tok[0]);
-      throw new SyntaxError('(adt.js) Unexpected token "' + tokStr + 
-                            '" in definition for "' + adtStr + '"');
-    }
+  case { _ () } => {
+    return [];
+  }
+  case { _ ( $tok ... ) } => {
+    throwSyntaxError('adt.js', 'Unexpected token', #{ $tok ... });
   }
 }
 
 macro $adt__field {
-  case { _ $lib $adt $name (*) } => {
+  case { _ $adt $lib $name (*) } => {
     return #{
-      ($adt__toString($name));
+      ($adt__toString($name))
     }
   }
-  case { _ $lib $adt $name ($constraint:expr) } => {
+  case { _ $adt $lib $name ($constraint ...) } => {
     var adt = #{ $adt };
-    var adtStr = unwrapSyntax(adt[0]);
-    var constraint = #{ $constraint };
-    var constraintStr = unwrapSyntax(constraint[0]);
-    var constraintEnd = constraint[constraint.length - 1];
+    var constraint = #{ $constraint ... };
+    var constraintEnd = unwrapSyntax(constraint[constraint.length - 1]);
+    var T = parser.Token;
     var useAsIs;
 
-    if (constraint[0].token.type === parser.Token.Keyword ||
-        constraintEnd.token.type === parser.Token.Delimiter) {
+    function matchesTok(type, value, tok) {
+      m = true;
+      if (tok.length === 1) tok = tok[0];
+      if (type && tok.token.type !== type) m = false;
+      if (value && tok.token.value !== value) m = false;
+      return m;
+    }
+
+    // Anything with parens is assumed literal
+    if (constraint.length === 1 && matchesTok(T.Delimiter, '()', constraint)) {
       useAsIs = true;
-    } else if (constraint[0].token.type === parser.Token.Identifier) {
-      var identStr = unwrapSyntax(constraint[constraint.length - 1]);
-      if (identStr[0].toLowerCase() === identStr[0]) {
-        useAsIs = true;
+    }
+
+    // Function literal
+    else if (constraint.length === 3 &&
+             matchesTok(T.Keyword, 'function', constraint[0]) &&
+             matchesTok(T.Delimiter, '()', constraint[1]) &&
+             matchesTok(T.Delimiter, '{}', constraint[2])) {
+      useAsIs = true;
+    }
+
+    // Named function literal
+    else if (constraint.length === 4 &&
+             matchesTok(T.Keyword, 'function', constraint[0]) &&
+             matchesTok(T.Identifier, null, constraint[1]) &&
+             matchesTok(T.Delimiter, '()', constraint[2]) &&
+             matchesTok(T.Delimiter, '{}', constraint[3])) {
+      useAsIs = true;
+    }
+
+    // Non-uppercased identifier/path
+    else if (matchesTok(T.Identifier, null, constraint[0]) &&
+             constraintEnd[0].toLowerCase() === constraintEnd[0]) {
+      useAsIs = true;
+    }
+
+    // Recursive constraint
+    if (constraint.length === 1 &&
+        unwrapSyntax(adt) === unwrapSyntax(constraint)) {
+      return #{
+        ($adt__toString($name), $lib.only($adt))
       }
     }
 
-    if (adtStr === constraintStr) {
+    // Literal constraint
+    else if (useAsIs) {
       return #{
-        ($adt__toString($name), $lib.only($adt));
+        ($adt__toString($name), $constraint ...)
       }
-    } else if (useAsIs) {
+    }
+
+    // Type constraint
+    else {
       return #{
-        ($adt__toString($name), $constraint);
-      }
-    } else {
-      return #{
-        ($adt__toString($name), $lib.only($constraint));
+        ($adt__toString($name), $lib.only($constraint ...))
       }
     }
   }
 }
 
 macro $adt__fields {
-  rule { $lib $adt $field $rec ( $name $(:) $constraint:expr , $tail ... ) } => {
-    $field $adt__field $lib $adt $name ($constraint)
-    $adt__fields $lib $adt $field $rec ($tail ...)
+  rule { $adt $lib $fieldfn $typename ( $name $[:] $constraint:expr , $rest ... ) } => {
+    $fieldfn $adt__field $adt $lib $name ($constraint);
+    $adt__fields $adt $lib $fieldfn $typename ($rest ...)
   }
-  rule { $lib $adt $field $rec ( $name $(:) * , $tail ... ) } => {
-    $field $adt__field $lib $adt $name (*)
-    $adt__fields $lib $adt $field $rec ($tail ...)
+  rule { $adt $lib $fieldfn $typename ( $name $[:] * , $rest ... ) } => {
+    $fieldfn $adt__field $adt $lib $name (*);
+    $adt__fields $adt $lib $fieldfn $typename ($rest ...)
   }
-  rule { $lib $adt $field $rec ( $name $(:) $constraint:expr $err ... ) } => {
-    $field $adt__field $lib $adt $name ($constraint)
-    $adt__error $rec ($err ...)
+  rule { $adt $lib $fieldfn $typename ( $name $[:] $constraint:expr $err ... ) } => {
+    $fieldfn $adt__field $adt $lib $name ($constraint);
+    $adt__error ($err ...)
   }
-  rule { $lib $adt $field $rec ( $name $(:) * $err ... ) } => {
-    $field $adt__field $lib $adt $name (*)
-    $adt__error $rec ($err ...)
+  rule { $adt $lib $fieldfn $typename ( $name $[:] * $err ... ) } => {
+    $fieldfn $adt__field $adt $lib $name (*);
+    $adt__error ($err ...)
   }
-  rule { $lib $adt $field $rec () } => {}
-  rule { $lib $adt $field $rec ( $err ... ) } => {
-    $adt__error $rec ($err ...)
-  }
+  rule { $adt $lib $fieldfn $typename () } => {}
 }
 
 macro $adt__record {
-  rule { $lib $adt $name { $fields ... } } => {
+  rule { $adt $lib $name { $fields ... } } => {
     ($adt__toString($name), $lib.record(function(field, $name) {
-      $adt__fields $lib $adt field $name ($fields ...)
-    }));
+      $adt__fields $adt $lib field $name ($fields ...)
+    }))
   }
 }
 
 macro $adt__single {
-  rule { $lib $adt $name ( $val ) } => {
-    ($adt__toString($name), $val);
+  rule { $adt $lib $name ( $val ) } => {
+    ($adt__toString($name), $val)
   }
 }
 
 macro $adt__types {
-  rule { $lib $type $adt ( $name { $fields ... } , $tail ... ) } => {
-    $type $adt__record $lib $adt $name { $fields ... }
-    $adt__types $lib $type $adt ($tail ...)
+  rule { $adt $lib $typefn ( $name { $fields ... } , $rest ... ) } => {
+    $typefn $adt__record $adt $lib $name { $fields ... };
+    $adt__types $adt $lib $typefn ($rest ...)
   }
-  rule { $lib $type $adt ( $name = $val:expr , $tail ... ) } => {
-    $type $adt__single $lib $adt $name ($val)
-    $adt__types $lib $type $adt ($tail ...)
+  rule { $adt $lib $typefn ( $name = $val:expr , $rest ... ) } => {
+    $typefn $adt__single $adt $lib $name ($val);
+    $adt__types $adt $lib $typefn ($rest ...)
   }
-  rule { $lib $type $adt ( $name , $tail ... ) } => {
-    $type $adt__single $lib $adt $name (null)
-    $adt__types $lib $type $adt ($tail ...)
+  rule { $adt $lib $typefn ( $name , $rest ... ) } => {
+    $typefn $adt__single $adt $lib $name (null);
+    $adt__types $adt $lib $typefn ($rest ...)
   }
-  rule { $lib $type $adt ( $name { $fields ... } $err ... ) } => {
-    $type $adt__record $lib $adt $name { $fields ... }
-    $adt__error $adt ($err ...)
+  rule { $adt $lib $typefn ( $name { $fields ... } $err ... ) } => {
+    $typefn $adt__record $adt $lib $name { $fields ... };
+    $adt__error ($err ...)
   }
-  rule { $lib $type $adt ( $name = $val:expr $err ... ) } => {
-    $type $adt__single $lib $adt $name ($val)
-    $adt__error $adt ($err ...)
+  rule { $adt $lib $typefn ( $name = $val:expr $err ... ) } => {
+    $typefn $adt__single $adt $lib $name ($val);
+    $adt__error ($err ...)
   }
-  rule { $lib $type $adt ( $name $err ... ) } => {
-    $type $adt__single $lib $adt $name (null)
-    $adt__error $adt ($err ...)
+  rule { $adt $lib $typefn ( $name $err ... ) } => {
+    $typefn $adt__single $adt $lib $name (null);
+    $adt__error ($err ...)
   }
-  rule { $lib $type $adt () } => {}
+  rule { $adt $lib $typefn () } => {}
 }
 
 macro $adt__unwrap {
-  rule { $adt ( $name { $fields ... } , $tail ... ) } => {
+  rule { $adt ( $name { $fields ... } , $rest ... ) } => {
     var $name = $adt.$name;
-    $adt__unwrap $adt ($tail ...)
+    $adt__unwrap $adt ($rest ...)
   }
-  rule { $adt ( $name = $val:expr , $tail ... ) } => {
+  rule { $adt ( $name = $val:expr , $rest ... ) } => {
     var $name = $adt.$name;
-    $adt__unwrap $adt ($tail ...)
+    $adt__unwrap $adt ($rest ...)
   }
-  rule { $adt ( $name , $tail ... ) } => {
+  rule { $adt ( $name , $rest ... ) } => {
     var $name = $adt.$name;
-    $adt__unwrap $adt ($tail ...)
+    $adt__unwrap $adt ($rest ...)
   }
   rule { $adt ( $name { $fields ... } ) } => {
     var $name = $adt.$name;
@@ -156,40 +180,38 @@ macro $adt__unwrap {
   rule { $adt () } => {}
 }
 
-macro $data {
-  rule { $name:ident { $types ...  } } => {
-    var $name = (function(lib) {
-      return lib.data(function(type, $name) {
-        $adt__types lib type $name ($types ...)
-      });
+let $data = macro {
+  rule { $adt:ident { $types ... } } => {
+    var $adt = (function(lib) {
+      return lib.data(function(type, $adt) {
+        $adt__types $adt lib type ($types ...)
+      })
     })($adt__load);
-    $adt__unwrap $name ($types ...)
+    $adt__unwrap $adt ($types ...)
   }
 }
 
-macro $enum {
-  rule { $name:ident { $types ... } } => {
-    var $name = (function(lib) {
-      return lib.enumeration(function(type, $name) {
-        $adt__types lib type $name ($types ...)
+let $enum = macro {
+  rule { $adt:ident { $types ... } } => {
+    var $adt = (function(lib) {
+      return lib.enumeration(function(type, $adt) {
+        $adt__types $adt lib type ($types ...)
       });
     })($adt__load);
-    $adt__unwrap $name ($types ...)
-  }
-  rule {} => {
-    enum
+    $adt__unwrap $adt ($types ...)
   }
 }
 
-macro $newtype {
-  rule { $name:ident { $fields ... } } => {
+let $newtype = macro {
+  rule { $adt:ident { $fields ... } } => {
     var $name = (function(lib) {
-      return lib.newtype($adt__toString($name), lib.record(function(field, $name) {
-        $adt__fields lib $name field $name ($fields ...)
+      return lib.newtype($adt__toString($adt), lib.record(function(field, $adt) {
+        $adt__fields $adt lib field $adt ($fields ...)
       }));
     })($adt__load);
   }
-  rule {} => {
-    newtype
-  }
 }
+
+export $data;
+export $enum;
+export $newtype;

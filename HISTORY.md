@@ -1,3 +1,7 @@
+## 0.6.4
+
+* Update macros for sweet.js 0.3.x
+
 ## 0.6.3
 
 * Updated for sparkler

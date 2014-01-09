@@ -251,7 +251,7 @@ Lonely = Lonely.Lonely;
 
 // Do this:
 var Lonely = adt.newtype('Lonely', {
-  value: ady.any
+  value: adt.any
 });
 ```
 

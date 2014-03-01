@@ -206,7 +206,7 @@ let enum = macro {
 
 let newtype = macro {
   rule { $adt:ident { $fields ... } } => {
-    var $name = (function(lib) {
+    var $adt = (function(lib) {
       return lib.newtype($adt__toString($adt), lib.record(function(field, $adt) {
         $adt__fields $adt lib field $adt ($fields ...)
       }));

@@ -299,4 +299,17 @@ suite('Core', function () {
       });
     });
   });
+
+  suite('adt.data().type([a, b, c])', function () {
+    test('all properties should be defined', function () {
+      var Foo = adt.data('Foo');
+      var Bar = Foo.type('Bar', ['foo', 'bar', 'baz', 'zuux']);
+      var out = Bar('FOO', 'BAR')('BAZ', "ZUUX");
+
+      assert.ok('Correct foo', out.foo === 'FOO');
+      assert.ok('Correct bar', out.bar === 'BAR');
+      assert.ok('Correct baz', out.baz === 'BAZ');
+      assert.ok('Correct zuux', out.zuux === 'ZUUX');
+    });
+  });
 });

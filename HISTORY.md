@@ -1,4 +1,4 @@
-## 0.7.0
+## 0.7.1
 
 * Constructors are all bound to undefined to get around a newless edge case (#10).
 * Macros renamed to leave off the dollar sign.

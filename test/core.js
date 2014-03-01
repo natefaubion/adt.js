@@ -236,4 +236,67 @@ suite('Core', function () {
     ok('Multiple types', mult('foo') && mult(42) && mult(null) === null);
     throws('Multiple throws', function () { mult(true); }, TypeError);
   });
+
+  suite('Calling as method from another other instance', function () {
+
+    suite('adt.data().type()', function () {
+
+      suite('non-curried', function () {
+        var Foo = adt.data();
+        var Bar = Foo.type('Bar', { value: adt.any });
+        var bar = Bar(Bar).value('baz');
+        ok('Not undefined', bar !== undefined);
+        if (bar) ok('Correct value', bar.value === 'baz');
+      });
+
+      test('curried', function () {
+        var Foo = adt.data();
+        var Bar = Foo.type('Bar', { one: adt.any, two: adt.any });
+
+        var bars = [
+          Bar(Bar, Bar).one('baz', 'zuux'),
+          Bar(Bar)(Bar).one('baz', 'zuux'),
+          Bar(Bar, Bar).one('baz')('zuux'),
+          Bar(Bar)(Bar).one('baz')('zuux'),
+        ];
+
+        bars.forEach(function (bar) {
+          assert.ok('Not undefined', bar !== undefined);
+          if (bar) {
+            assert.ok('Correct one value', bar.one === 'baz');
+            assert.ok('Correct two value', bar.two === 'zuux');
+          }
+        });
+      });
+    });
+
+    suite('adt.newtype()', function () {
+
+      suite('non-curried', function () {
+        var Bar = adt.newtype('Bar', { value: adt.any });
+        var bar = Bar(Bar).value('baz');
+        ok('Not undefined', bar !== undefined);
+        if (bar) ok('Correct value', bar.value === 'baz');
+      });
+
+      test('curried', function () {
+        var Bar = adt.newtype('Bar', { one: adt.any, two: adt.any });
+
+        var bars = [
+          Bar(Bar, Bar).one('baz', 'zuux'),
+          Bar(Bar)(Bar).one('baz', 'zuux'),
+          Bar(Bar, Bar).one('baz')('zuux'),
+          Bar(Bar)(Bar).one('baz')('zuux'),
+        ];
+
+        bars.forEach(function (bar) {
+          assert.ok('Not undefined', bar !== undefined);
+          if (bar) {
+            assert.ok('Correct one value', bar.one === 'baz');
+            assert.ok('Correct two value', bar.two === 'zuux');
+          }
+        });
+      });
+    });
+  });
 });

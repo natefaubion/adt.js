@@ -237,7 +237,7 @@ suite('Core', function () {
     throws('Multiple throws', function () { mult(true); }, TypeError);
   });
 
-  suite('Calling as method from another other instance', function () {
+  suite('Calling as a method on another instance:', function () {
 
     suite('adt.data().type()', function () {
 

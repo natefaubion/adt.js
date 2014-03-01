@@ -1,3 +1,9 @@
+## 0.7.0
+
+* Constructors are all bound to undefined to get around a newless edge case (#10).
+* Macros renamed to leave off the dollar sign.
+* Renamed `unapplyObj` to `unapplyObject` for `sparkler`.
+
 ## 0.6.4
 
 * Update macros for sweet.js 0.3.x

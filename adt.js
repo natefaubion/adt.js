@@ -2,7 +2,7 @@
 // ------
 // Algebraic data types and immutable structures in Javascript
 //
-// version : 0.6.5
+// version : 0.7.0
 // author  : Nathan Faubion <nathan@n-son.com>
 // license : MIT
 

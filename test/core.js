@@ -76,12 +76,12 @@ suite('Core', function () {
     ok('`clone` copies values', foo4.a !== foo5.a);
 
     var arr = Foo.unapply(foo);
-    var obj = Foo.unapplyObj(foo);
+    var obj = Foo.unapplyObject(foo);
     ok('`unapply` returns array representation',
        arr instanceof Array && arr.length === 4 &&
        arr[0] === 1 && arr[1] === 2 && arr[2] === 3 && arr[3] === 4);
 
-    ok('`unapplyObj` returns object representation', 
+    ok('`unapplyObject` returns object representation', 
        obj instanceof Object && Object.keys(obj).length === 4 &&
        obj.a === 1 && obj.b === 2 && obj.c === 3 && obj.d === 4);
 

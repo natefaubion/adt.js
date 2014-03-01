@@ -2,7 +2,7 @@
 // ------
 // Algebraic data types and immutable structures in Javascript
 //
-// version : 0.6.3
+// version : 0.6.5
 // author  : Nathan Faubion <nathan@n-son.com>
 // license : MIT
 
@@ -260,7 +260,7 @@
     },
 
     toJSON: function () {
-      return this.constructor.unapplyObj(this, toJSONValue);
+      return this.constructor.unapplyObject(this, toJSONValue);
     },
 
     // Clones any value that is an adt.js type, delegating other JS values
@@ -351,7 +351,7 @@
       }
     },
 
-    unapplyObj: function (inst, fn) {
+    unapplyObject: function (inst, fn) {
       if (this.hasInstance(inst)) {
         var names = this.__names__;
         var vals = {}, i = 0, n;

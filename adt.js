@@ -63,7 +63,7 @@
       var isSingle = checkTypes([String, Boolean, Number, Date, null, void 0], tmpl);
       if (isSingle) tmpl = adt.single(tmpl);
       else if (typeof tmpl !== 'function') {
-        tmpl = checkType([Array], tmpl)
+        tmpl = checkType(Array, tmpl)
           ? adt.record.apply(null, tmpl)
           : adt.record(tmpl);
       }

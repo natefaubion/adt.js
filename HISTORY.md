@@ -1,3 +1,8 @@
+## 0.7.2
+
+* Fix for `Foo.type('Bar', ['a', 'b', 'c'])` form
+* Fix for newtype macros
+
 ## 0.7.1
 
 * Constructors are all bound to undefined to get around a newless edge case (#10).

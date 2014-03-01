@@ -46,7 +46,7 @@ Maybe = data
 
 **Macros:**
 ``` js
-$data Maybe {
+data Maybe {
   Nothing,
   Just {
     value: *
@@ -120,7 +120,7 @@ List = data ->
 
 **Macros:**
 ```js
-$data List {
+data List {
   Nil,
   Cons {
     head: *,
@@ -177,7 +177,7 @@ var Days = adt.enum('Sun', 'Mon', 'Tues', 'Wed', 'Thur', 'Fri', 'Sat');
 
 **Macros:**
 ```js
-$enum Days {
+enum Days {
   Sun, Mon, Tues, Wed, Thur, Fri, Sat
 }
 ```
@@ -216,7 +216,7 @@ Days2.Mon.toJSON() === 2;
 
 **Macros:**
 ```js
-$enum Days2 {
+enum Days2 {
   Sun = 1,
   Mon = 2,
   Tues = 3,
@@ -257,7 +257,7 @@ var Lonely = adt.newtype('Lonely', {
 
 **Macros:**
 ```js
-$newtype Lonely {
+newtype Lonely {
   value: *
 }
 ```
@@ -438,7 +438,7 @@ Data types made with adt.js have builtin support for sparkler, a pattern
 matching engine for JavaScript:
 
 ```js
-$data Tree {
+data Tree {
   Empty,
   Node {
     value: *,
@@ -506,7 +506,7 @@ One nice property of the macros is that the data constructors are automatically
 brought into the surrounding scope:
 
 ```js
-$data List {
+data List {
   Nil,
   Cons {
     head: *,

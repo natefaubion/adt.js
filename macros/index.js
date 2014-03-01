@@ -180,7 +180,7 @@ macro $adt__unwrap {
   rule { $adt () } => {}
 }
 
-let $data = macro {
+let data = macro {
   rule { $adt:ident { $types ... } } => {
     var $adt = (function(lib) {
       return lib.data(function(type, $adt) {
@@ -189,9 +189,10 @@ let $data = macro {
     })($adt__load);
     $adt__unwrap $adt ($types ...)
   }
+  rule { } => { data }
 }
 
-let $enum = macro {
+let enum = macro {
   rule { $adt:ident { $types ... } } => {
     var $adt = (function(lib) {
       return lib.enumeration(function(type, $adt) {
@@ -200,9 +201,10 @@ let $enum = macro {
     })($adt__load);
     $adt__unwrap $adt ($types ...)
   }
+  rule { } => { enum }
 }
 
-let $newtype = macro {
+let newtype = macro {
   rule { $adt:ident { $fields ... } } => {
     var $name = (function(lib) {
       return lib.newtype($adt__toString($adt), lib.record(function(field, $adt) {
@@ -210,8 +212,9 @@ let $newtype = macro {
       }));
     })($adt__load);
   }
+  rule { } => { newtype }
 }
 
-export $data;
-export $enum;
-export $newtype;
+export data;
+export enum;
+export newtype;

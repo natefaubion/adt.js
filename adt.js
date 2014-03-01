@@ -72,10 +72,17 @@
       // false by default. Each individual class should overrides its own.
       D.prototype['is' + name] = false;
 
-      // Call the template to build our type and export it on the parent type.
-      D[name] = tmpl(D, name);
+      // Call the template to build our type.
+      var d = tmpl(D, name);
+
+      // Bind the constructor context to avoid conflicts with calling as a method.
+      d = (typeof d === 'function') ? extend(d.bind(), d) : d;
+
+      // Export it on the parent type.
+      D[name] = d;
       names.push(name);
-      return D[name];
+
+      return d;
     };
 
     // Call the callback with the constructor as the context.
